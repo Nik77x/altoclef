@@ -24,6 +24,8 @@ public class MLGBucketTask extends Task {
 
     private boolean _clicked;
 
+    private boolean _hasWaterBucket = true;
+
     private BlockPos _placedPos;
 
     @Override
@@ -78,11 +80,22 @@ public class MLGBucketTask extends Task {
                 return null;
             }
 
-            if (!mod.getInventoryTracker().equipItem(Items.WATER_BUCKET)) {
-                Debug.logWarning("Failed to equip bucket for mlg. Oh shit.");
+            if(!mod.getInventoryTracker().hasItem(Items.WATER_BUCKET)) _hasWaterBucket = false;
+
+            if(_hasWaterBucket){
+
+                mod.getInventoryTracker().equipItem(Items.WATER_BUCKET);
+                mod.getClientBaritone().getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, false);
+
+            }
+            else if(mod.getInventoryTracker().hasItem(Items.COBWEB)){
+                if(!mod.getInventoryTracker().equipItem(Items.COBWEB)){
+                    Debug.logWarning("Failed to equip water bucket or cobweb, Fuck, prepare to die then!");
+
+                }
                 mod.getClientBaritone().getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, false);
             }
-
+            
             IPlayerContext ctx = mod.getClientBaritone().getPlayerContext();
             Optional<Rotation> reachable = RotationUtils.reachable(ctx.player(), toPlaceOn, ctx.playerController().getBlockReachDistance());
             if (reachable.isPresent()) {
@@ -121,7 +134,8 @@ public class MLGBucketTask extends Task {
     @Override
     public boolean isFinished(AltoClef mod) {
         if (mod.getCurrentDimension() == Dimension.NETHER) return true;
-        return !mod.getInventoryTracker().hasItem(Items.WATER_BUCKET) || mod.getPlayer().isSwimming() || mod.getPlayer().isTouchingWater() || mod.getPlayer().isOnGround() || mod.getPlayer().isClimbing();
+      //!mod.getInventoryTracker().hasItem(Items.WATER_BUCKET) && !mod.getInventoryTracker().hasItem(Items.COBWEB) ||
+        return  mod.getPlayer().isSwimming() || mod.getPlayer().isTouchingWater() || mod.getPlayer().isOnGround() || mod.getPlayer().isClimbing();
     }
 
     @Override
