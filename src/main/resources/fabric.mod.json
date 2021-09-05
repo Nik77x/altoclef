@@ -1,4 +1,8 @@
 {
+  "depends": {
+    "fabric-key-binding-api-v1": "*"
+  },
+
   "schemaVersion": 1,
   "id": "altoclef",
   "version": "${version}",
@@ -17,9 +21,11 @@
   "entrypoints": {
     "main": [
       "adris.altoclef.AltoClef"
-    ]
+    ],
+    "client": ["adris.altoclef.AltoClef"]
   },
   "mixins": [
     "altoclef.mixins.json"
   ]
+
 }

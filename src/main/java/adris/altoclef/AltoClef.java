@@ -1,5 +1,6 @@
 package adris.altoclef;
 
+import adris.altoclef.KeybindActions.KeybindingsSystem.KeyAction;
 import adris.altoclef.butler.Butler;
 import adris.altoclef.commandsystem.CommandExecutor;
 import adris.altoclef.mixins.ClientConnectionAccessor;
@@ -21,10 +22,18 @@ import baritone.Baritone;
 import baritone.altoclef.AltoClefSettings;
 import baritone.api.BaritoneAPI;
 import baritone.api.Settings;
+import ca.weblite.objc.Client;
+
+import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
+import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.network.ClientConnection;
@@ -32,6 +41,8 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.chunk.WorldChunk;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -73,6 +84,8 @@ public class AltoClef implements ModInitializer {
     // Butler
     private Butler _butler;
 
+
+
     // uh oh static
     public static int getTicks() {
         ClientConnection con = Objects.requireNonNull(MinecraftClient.getInstance().getNetworkHandler()).getConnection();
@@ -91,6 +104,7 @@ public class AltoClef implements ModInitializer {
         // However, some things (like resources) may still be uninitialized.
         // As such, nothing will be loaded here but basic initialization.
         StaticMixinHookups.hookupMod(this);
+        FabricLoader.getInstance().getEntrypoints();
     }
 
     public void onInitializeLoad() {
@@ -148,6 +162,8 @@ public class AltoClef implements ModInitializer {
 
         onInitialize.invoke(this);
     }
+
+
 
     // Client tick
     public void onClientTick() {
@@ -228,6 +244,11 @@ public class AltoClef implements ModInitializer {
             e.printStackTrace();
         }
     }
+
+
+
+
+
 
     // Main handlers access
     public CommandExecutor getCommandExecutor() {
@@ -392,5 +413,6 @@ public class AltoClef implements ModInitializer {
     public Action<WorldChunk> getOnChunkLoad() {
         return _onChunkLoad;
     }
+
 
 }
