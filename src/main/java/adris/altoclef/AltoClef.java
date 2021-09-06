@@ -429,6 +429,8 @@ public class AltoClef implements ModInitializer {
         return _mlgBucketChain;
     }
 
+
+
     public Dimension getCurrentDimension() {
         if (!inGame()) return Dimension.OVERWORLD;
         if (getWorld().getDimension().isUltrawarm()) return Dimension.NETHER;

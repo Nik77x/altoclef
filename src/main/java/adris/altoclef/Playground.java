@@ -330,6 +330,7 @@ public class Playground {
                         new ItemTarget("netherite_leggings", 1),
                         new ItemTarget("netherite_boots", 1)));
                 break;
+
         }
     }
 
