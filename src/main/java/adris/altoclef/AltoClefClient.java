@@ -35,11 +35,12 @@ public class AltoClefClient implements ClientModInitializer
     private void initializeKeybindings(){
         for (KeyAction keyAction : keyActions)
         {
-            KeyBinding key = KeyBindingHelper.registerKeyBinding(keyAction);
+            KeyBinding key = KeyBindingHelper.registerKeyBinding(keyAction.GetKeybinding());
 
             ClientTickEvents.END_CLIENT_TICK.register(client -> {
                 while (key.wasPressed()){
-                    keyAction.execute(this);
+                    //keyAction.execute();
+
                 }
             });
         }

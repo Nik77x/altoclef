@@ -1,5 +1,8 @@
 package adris.altoclef.KeybindActions.Actions;
 
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.util.InputUtil.Type;
+
 import org.lwjgl.glfw.GLFW;
 
 import adris.altoclef.AltoClef;
@@ -10,7 +13,7 @@ public class PrintHello extends KeyAction
 
     public PrintHello()
     {
-        super("key.AltoClef.PrintHello", GLFW.GLFW_KEY_K, "category.AltoClef.Utils");
+        super("PrintHello", Type.KEYSYM,  GLFW.GLFW_KEY_K, "Utils");
     }
 
 

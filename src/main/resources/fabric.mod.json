@@ -21,8 +21,8 @@
   "entrypoints": {
     "main": [
       "adris.altoclef.AltoClef"
-    ],
-    "client": ["adris.altoclef.AltoClef"]
+    ]
+
   },
   "mixins": [
     "altoclef.mixins.json"
