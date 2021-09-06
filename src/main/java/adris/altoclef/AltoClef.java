@@ -73,6 +73,7 @@ public class AltoClef implements ModInitializer {
     // Butler
     private Butler _butler;
 
+
     // uh oh static
     public static int getTicks() {
         ClientConnection con = Objects.requireNonNull(MinecraftClient.getInstance().getNetworkHandler()).getConnection();
@@ -360,6 +361,8 @@ public class AltoClef implements ModInitializer {
     public MLGBucketFallChain getMLGBucketChain() {
         return _mlgBucketChain;
     }
+
+
 
     public Dimension getCurrentDimension() {
         if (!inGame()) return Dimension.OVERWORLD;

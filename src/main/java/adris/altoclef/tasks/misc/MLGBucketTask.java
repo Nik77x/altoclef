@@ -95,7 +95,7 @@ public class MLGBucketTask extends Task {
                 }
                 mod.getClientBaritone().getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, false);
             }
-            
+
             IPlayerContext ctx = mod.getClientBaritone().getPlayerContext();
             Optional<Rotation> reachable = RotationUtils.reachable(ctx.player(), toPlaceOn, ctx.playerController().getBlockReachDistance());
             if (reachable.isPresent()) {
