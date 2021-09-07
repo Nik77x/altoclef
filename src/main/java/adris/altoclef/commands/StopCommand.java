@@ -12,6 +12,7 @@ public class StopCommand extends Command {
 
     @Override
     protected void Call(AltoClef mod, ArgParser parser) {
+        //added this so it calls onStop()
         mod.getUserTaskChain().cancel(mod);
         mod.getTaskRunner().disable();
         finish();

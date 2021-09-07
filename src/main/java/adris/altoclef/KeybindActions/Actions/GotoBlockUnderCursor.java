@@ -14,12 +14,12 @@ import adris.altoclef.KeybindActions.KeybindingsSystem.KeyAction;
 import adris.altoclef.tasks.GetToBlockTask;
 import adris.altoclef.util.LookUtil;
 
-public class GotoLookedPoint extends KeyAction
+public class GotoBlockUnderCursor extends KeyAction
 {
 
-    public GotoLookedPoint()
+    public GotoBlockUnderCursor()
     {
-        super("GotoPoint", Type.KEYSYM, GLFW.GLFW_KEY_B, "Utils");
+        super("GotoBlockUnderCursor", Type.KEYSYM, GLFW.GLFW_KEY_B, "Utils");
     }
 
     @Override public void execute(AltoClef mod)
