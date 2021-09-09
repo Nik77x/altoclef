@@ -1,0 +1,7 @@
+{
+    "category.AltoClef.Utils" : "AltoClef Utility Keybinds",
+    "key.AltoClef.GotoBlockUnderCursor": "Go to the block you're looking",
+    "key.AltoClef.StopAll": "Stop all tasks",
+    "key.AltoClef.PrintHello": "Test Keybinding"
+}
+

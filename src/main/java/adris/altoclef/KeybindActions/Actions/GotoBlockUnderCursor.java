@@ -32,8 +32,11 @@ public class GotoBlockUnderCursor extends KeyAction
             Debug.logMessage("Going to block!");
             BlockPos finalPos = hitResult.getBlockPos().up();
             mod.getMobDefenseChain().ShouldForceField(false);
+            mod.getMobDefenseChain().ShouldAvoidMobs(false);
             mod.runUserTask(new GetToBlockTask(finalPos), something ->{
                 mod.getMobDefenseChain().ShouldForceField(true);
+                mod.getMobDefenseChain().ShouldAvoidMobs(true);
+
             });
         }else if(hitResult.getType() == HitResult.Type.MISS){
             Debug.logMessage("You're not looking at anything or block is too far");
