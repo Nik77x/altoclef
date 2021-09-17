@@ -1,5 +1,7 @@
 package adris.altoclef;
 
+import adris.altoclef.KeybindActions.KeybindingsSystem.KeyAction;
+import adris.altoclef.KeybindActions.KeybindingsSystem.KeybindingsList;
 import adris.altoclef.butler.Butler;
 import adris.altoclef.commandsystem.CommandExecutor;
 import adris.altoclef.mixins.ClientConnectionAccessor;
@@ -21,19 +23,34 @@ import baritone.Baritone;
 import baritone.altoclef.AltoClefSettings;
 import baritone.api.BaritoneAPI;
 import baritone.api.Settings;
+import ca.weblite.objc.Client;
+
+import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.network.ClientConnection;
+import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.chunk.WorldChunk;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import org.lwjgl.glfw.GLFW;
 
 public class AltoClef implements ModInitializer {
 
@@ -73,6 +90,8 @@ public class AltoClef implements ModInitializer {
     // Butler
     private Butler _butler;
 
+    private List<KeyAction> keyActions = new ArrayList<KeyAction>();
+
 
     // uh oh static
     public static int getTicks() {
@@ -86,12 +105,19 @@ public class AltoClef implements ModInitializer {
         return MinecraftClient.getInstance().player != null && MinecraftClient.getInstance().getNetworkHandler() != null;
     }
 
+    private static KeyBinding keyBinding;
     @Override
     public void onInitialize() {
         // This code runs as soon as Minecraft is in a mod-load-ready state.
         // However, some things (like resources) may still be uninitialized.
         // As such, nothing will be loaded here but basic initialization.
         StaticMixinHookups.hookupMod(this);
+        //FabricLoader.getInstance().getEntrypoints();
+        new AltoClefKeybindings(this);
+
+        initializeKeybindings();
+
+
     }
 
     public void onInitializeLoad() {
@@ -136,6 +162,8 @@ public class AltoClef implements ModInitializer {
 
         _butler = new Butler(this);
 
+        //new AltoClefKeybindings(this);
+
         // Misc wiring
         // When we place a block and might be tracking it, make the change immediate.
         _extraController.onBlockPlaced.addListener(new ActionListener<>(value -> {
@@ -145,10 +173,15 @@ public class AltoClef implements ModInitializer {
 
         initializeCommands();
 
+        //this should be done in onInitializeClient, but this works too.
+
+
         Playground.IDLE_TEST_INIT_FUNCTION(this);
 
         onInitialize.invoke(this);
     }
+
+
 
     // Client tick
     public void onClientTick() {
@@ -229,6 +262,38 @@ public class AltoClef implements ModInitializer {
             e.printStackTrace();
         }
     }
+
+    //TODO
+    private void initializeKeybindings(){
+
+
+        for (KeyAction keyAction : keyActions)
+        {
+            KeyBinding key = KeyBindingHelper.registerKeyBinding(keyAction.GetKeybinding());
+
+            ClientTickEvents.END_CLIENT_TICK.register(client -> {
+                while (key.wasPressed()){
+                    keyAction.execute(this);
+
+                }
+            });
+        }
+
+    }
+
+    public void RegisterKeybindingAction(KeyAction...kActions){
+
+        for (KeyAction action : kActions)
+        {
+            keyActions.add(action);
+
+            System.out.println("[KeybindingsInitialization] registered keybinding: " + action.GetName());
+        }
+        //Collections.addAll(keyActions, kActoins);
+    }
+
+
+
 
     // Main handlers access
     public CommandExecutor getCommandExecutor() {
@@ -340,6 +405,8 @@ public class AltoClef implements ModInitializer {
         });
     }
 
+
+
     @SuppressWarnings("rawtypes")
     public void runUserTask(Task task, Consumer onFinish) {
         _userTaskChain.runTask(this, task, onFinish);
@@ -395,5 +462,6 @@ public class AltoClef implements ModInitializer {
     public Action<WorldChunk> getOnChunkLoad() {
         return _onChunkLoad;
     }
+
 
 }
