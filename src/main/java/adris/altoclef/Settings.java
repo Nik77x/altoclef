@@ -513,6 +513,8 @@ public class Settings {
         return entityReachRange;
     }
 
+
+
     public Item[] getThrowawayItems(AltoClef mod) {
         List<Item> result = new ArrayList<>();
         for (Item throwawayItem : throwawayItems) {
@@ -541,6 +543,8 @@ public class Settings {
     public BlockPos getHomeBasePosition() {
         return homeBasePosition;
     }
+
+
 
     private static class ProtectionRange {
         public BlockPos start;
