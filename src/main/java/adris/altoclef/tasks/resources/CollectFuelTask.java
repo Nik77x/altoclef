@@ -2,9 +2,10 @@ package adris.altoclef.tasks.resources;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.TaskCatalogue;
-import adris.altoclef.tasks.DefaultGoToDimensionTask;
+import adris.altoclef.tasks.movement.DefaultGoToDimensionTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.Dimension;
+import net.minecraft.item.Items;
 
 // TODO: Make this collect more than just coal. It should smartly pick alternative sources if coal is too far away or if we simply cannot get a wooden pick.
 public class CollectFuelTask extends Task {
@@ -27,7 +28,7 @@ public class CollectFuelTask extends Task {
             case OVERWORLD:
                 // Just collect coal for now.
                 setDebugState("Collecting coal.");
-                return TaskCatalogue.getItemTask("coal", (int) Math.ceil(_targetFuel / 8));
+                return TaskCatalogue.getItemTask(Items.COAL, (int) Math.ceil(_targetFuel / 8));
             case END:
                 setDebugState("Going to overworld, since, well, no more fuel can be found here.");
                 return new DefaultGoToDimensionTask(Dimension.OVERWORLD);
@@ -46,10 +47,9 @@ public class CollectFuelTask extends Task {
     }
 
     @Override
-    protected boolean isEqual(Task obj) {
-        if (obj instanceof CollectFuelTask) {
-            CollectFuelTask other = (CollectFuelTask) obj;
-            return Math.abs(other._targetFuel - _targetFuel) < 0.01;
+    protected boolean isEqual(Task other) {
+        if (other instanceof CollectFuelTask task) {
+            return Math.abs(task._targetFuel - _targetFuel) < 0.01;
         }
         return false;
     }

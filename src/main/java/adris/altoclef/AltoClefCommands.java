@@ -2,20 +2,19 @@ package adris.altoclef;
 
 import adris.altoclef.commands.*;
 import adris.altoclef.commandsystem.CommandException;
-import adris.altoclef.commandsystem.CommandExecutor;
-import adris.altoclef.commandsystem.CommandList;
 
-/// This structure was copied from a C# project. Fuck java. All my homies hate java.
-public class AltoClefCommands extends CommandList {
+/**
+ * Initializes altoclef's built in commands.
+ */
+public class AltoClefCommands {
 
-    public AltoClefCommands(CommandExecutor executor) throws CommandException {
-        super(executor,
-                // List commands here
+    public AltoClefCommands() throws CommandException {
+        // List commands here
+        AltoClef.getCommandExecutor().registerNewCommand(
                 new HelpCommand(),
                 new GetCommand(),
                 new FollowCommand(),
                 new GiveCommand(),
-                new EquipCommand(),
                 new GotoCommand(),
                 new CoordsCommand(),
                 new StatusCommand(),
@@ -28,10 +27,10 @@ public class AltoClefCommands extends CommandList {
                 new GamerCommand(),
                 new PunkCommand(),
                 new SetGammaCommand(),
+                new ListCommand(),
                 new AssistCommand()
                 //new TestMoveInventoryCommand(),
                 //    new TestSwapInventoryCommand()
         );
     }
-
 }

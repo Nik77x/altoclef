@@ -2,16 +2,19 @@ package adris.altoclef.tasks.chest;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.Debug;
-import adris.altoclef.tasks.ResourceTask;
+import adris.altoclef.tasks.slot.ClickSlotTask;
+import adris.altoclef.tasks.slot.EnsureFreeInventorySlotTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.trackers.ContainerTracker;
 import adris.altoclef.util.ItemTarget;
 import adris.altoclef.util.csharpisbetter.TimerGame;
-import adris.altoclef.util.csharpisbetter.Util;
 import adris.altoclef.util.slots.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.screen.GenericContainerScreenHandler;
+import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.math.BlockPos;
+
+import java.util.Arrays;
 
 public class PickupFromChestTask extends AbstractDoInChestTask {
 
@@ -38,18 +41,18 @@ public class PickupFromChestTask extends AbstractDoInChestTask {
                 return null;
             }
             for (ItemTarget target : _targets) {
-                if (!mod.getInventoryTracker().targetMet(target)) {
+                if (!mod.getInventoryTracker().targetsMet(target)) {
                     for (Item mightMove : target.getMatches()) {
                         // Pick up all items that might fit our criteria.
                         if (data.hasItem(mightMove)) {
-                            if (!ResourceTask.ensureInventoryFree(mod)) {
-                                Debug.logWarning("FAILED TO FREE INVENTORY for chest pickup. This is bad.");
-                            } else {
-                                //int maxMove = target.targetCount - mod.getInventoryTracker().getItemCount(target);
-                                Slot itemSlot = data.getItemSlotsWithItem(mightMove).get(0);
-                                mod.getInventoryTracker().grabItem(itemSlot);
+                            if (mod.getInventoryTracker().isInventoryFull()) {
+                                return new EnsureFreeInventorySlotTask();
                             }
-                            return null;
+                            //int maxMove = target.getTargetCount() - mod.getInventoryTracker().getItemCount(target);
+                            Slot itemSlot = data.getItemSlotsWithItem(mightMove).get(0);
+                            return new ClickSlotTask(itemSlot, SlotActionType.QUICK_MOVE);
+                            //mod.getInventoryTracker().grabItem(itemSlot);
+                            //return new QuickGrabSlotTask(new ItemTarget(mightMove, maxMove));
                         }
                     }
                 }
@@ -59,16 +62,15 @@ public class PickupFromChestTask extends AbstractDoInChestTask {
     }
 
     @Override
-    protected boolean isSubEqual(AbstractDoInChestTask obj) {
-        if (obj instanceof PickupFromChestTask) {
-            PickupFromChestTask task = (PickupFromChestTask) obj;
-            return Util.arraysEqual(task._targets, _targets);
+    protected boolean isSubEqual(AbstractDoInChestTask other) {
+        if (other instanceof PickupFromChestTask task) {
+            return Arrays.equals(task._targets, _targets);
         }
         return false;
     }
 
     @Override
     protected String toDebugString() {
-        return "Picking up from chest: " + Util.arrayToString(_targets);
+        return "Picking up from chest: " + Arrays.toString(_targets);
     }
 }

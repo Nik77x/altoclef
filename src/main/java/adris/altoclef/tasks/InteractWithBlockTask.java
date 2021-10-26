@@ -3,36 +3,34 @@ package adris.altoclef.tasks;
 import adris.altoclef.AltoClef;
 import adris.altoclef.Debug;
 import adris.altoclef.TaskCatalogue;
-import adris.altoclef.tasks.misc.TimeoutWanderTask;
+import adris.altoclef.tasks.movement.TimeoutWanderTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.ItemTarget;
 import adris.altoclef.util.baritone.GoalAnd;
 import adris.altoclef.util.baritone.GoalBlockSide;
 import adris.altoclef.util.csharpisbetter.Action;
 import adris.altoclef.util.csharpisbetter.TimerGame;
-import adris.altoclef.util.csharpisbetter.Util;
+import adris.altoclef.util.helpers.LookHelper;
 import adris.altoclef.util.progresscheck.MovementProgressChecker;
 import baritone.Baritone;
-import baritone.api.BaritoneAPI;
 import baritone.api.pathing.goals.Goal;
 import baritone.api.pathing.goals.GoalNear;
 import baritone.api.pathing.goals.GoalTwoBlocks;
 import baritone.api.process.ICustomGoalProcess;
-import baritone.api.utils.IPlayerContext;
 import baritone.api.utils.Rotation;
-import baritone.api.utils.RotationUtils;
 import baritone.api.utils.input.Input;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.item.Item;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 
 import java.util.Optional;
 
+/**
+ * Left or Right click on a block on a particular (or any) side of the block.
+ */
 public class InteractWithBlockTask extends Task {
 
-    private static final int MAX_REACH = 7;
     public final Action TimedOut = new Action();
     private final ItemTarget _toUse;
     private final Direction _direction;
@@ -77,39 +75,28 @@ public class InteractWithBlockTask extends Task {
         this(toUse, target, false);
     }
 
-    public InteractWithBlockTask(BlockPos target) {
-        this(null, null, target, Input.CLICK_RIGHT, false, false);
+    public InteractWithBlockTask(Item toUse, Direction direction, BlockPos target, Input interactInput, boolean walkInto, Vec3i interactOffset, boolean shiftClick) {
+        this(new ItemTarget(toUse, 1), direction, target, interactInput, walkInto, interactOffset, shiftClick);
+    }
+    public InteractWithBlockTask(Item toUse, Direction direction, BlockPos target, Input interactInput, boolean walkInto, boolean shiftClick) {
+        this(new ItemTarget(toUse, 1), direction, target, interactInput, walkInto, shiftClick);
+    }
+    public InteractWithBlockTask(Item toUse, Direction direction, BlockPos target, boolean walkInto) {
+        this(new ItemTarget(toUse, 1), direction, target, walkInto);
+    }
+    public InteractWithBlockTask(Item toUse, BlockPos target, boolean walkInto, Vec3i interactOffset) {
+        this(new ItemTarget(toUse, 1), target, walkInto, interactOffset);
+    }
+    public InteractWithBlockTask(Item toUse, BlockPos target, boolean walkInto) {
+        this(new ItemTarget(toUse, 1), target, walkInto);
+    }
+    public InteractWithBlockTask(Item toUse, BlockPos target) {
+        this(new ItemTarget(toUse, 1), target);
     }
 
-    public static Optional<Rotation> getReach(BlockPos target, Direction side) {
-        Optional<Rotation> reachable;
-        IPlayerContext ctx = BaritoneAPI.getProvider().getPrimaryBaritone().getPlayerContext();
-        if (side == null) {
-            assert MinecraftClient.getInstance().player != null;
-            reachable = RotationUtils.reachable(ctx.player(), target, ctx.playerController().getBlockReachDistance());
-        } else {
-            Vec3i sideVector = side.getVector();
-            Vec3d centerOffset = new Vec3d(0.5 + sideVector.getX() * 0.5, 0.5 + sideVector.getY() * 0.5, 0.5 + sideVector.getZ() * 0.5);
 
-            Vec3d sidePoint = centerOffset.add(target.getX(), target.getY(), target.getZ());
-
-            //reachable(this.ctx.player(), _target, this.ctx.playerController().getBlockReachDistance());
-            reachable = RotationUtils.reachableOffset(ctx.player(), target, sidePoint, ctx.playerController().getBlockReachDistance(), false);
-
-            // Check for right angle
-            if (reachable.isPresent()) {
-                // Note: If sneak, use RotationUtils.inferSneakingEyePosition
-                Vec3d camPos = ctx.player().getCameraPosVec(1.0F);
-                Vec3d vecToPlayerPos = camPos.subtract(sidePoint);
-
-                double dot = vecToPlayerPos.normalize().dotProduct(new Vec3d(sideVector.getX(), sideVector.getY(), sideVector.getZ()));
-                if (dot < 0) {
-                    // We're perpendicular and cannot face.
-                    return Optional.empty();
-                }
-            }
-        }
-        return reachable;
+    public InteractWithBlockTask(BlockPos target) {
+        this(ItemTarget.EMPTY, null, target, Input.CLICK_RIGHT, false, false);
     }
 
     private static Goal createGoalForInteract(BlockPos target, int reachDistance, Direction interactSide, Vec3i interactOffset, boolean walkInto) {
@@ -133,7 +120,8 @@ public class InteractWithBlockTask extends Task {
                 return new GoalAnd(sideGoal, new GoalNear(target.add(interactOffset), reachDistance));
             } else {
                 // TODO: Cleaner method of picking which side to approach from. This is only here for the lava stuff.
-                return new GoalNear(target.add(interactOffset), reachDistance);
+                return new GoalTwoBlocks(target.up());
+                //return new GoalNear(target.add(interactOffset), reachDistance);
             }
         }
     }
@@ -148,7 +136,7 @@ public class InteractWithBlockTask extends Task {
     protected Task onTick(AltoClef mod) {
 
         // Get our use item first
-        if (_toUse != null && !mod.getInventoryTracker().targetMet(_toUse)) {
+        if (!ItemTarget.nullOrEmpty(_toUse) && !mod.getInventoryTracker().targetsMet(_toUse)) {
             _moveChecker.reset();
             _clickTimer.reset();
             return TaskCatalogue.getItemTask(_toUse);
@@ -171,20 +159,20 @@ public class InteractWithBlockTask extends Task {
         ICustomGoalProcess proc = mod.getClientBaritone().getCustomGoalProcess();
 
         switch (rightClick(mod)) {
-            case CANT_REACH:
+            case CANT_REACH -> {
                 // Get to our goal then
                 if (!proc.isActive()) {
                     proc.setGoalAndPath(moveGoal);
                 }
                 _clickTimer.reset();
-                break;
-            case WAIT_FOR_CLICK:
+            }
+            case WAIT_FOR_CLICK -> {
                 if (proc.isActive()) {
                     proc.onLostControl();
                 }
                 _clickTimer.reset();
-                break;
-            case CLICK_ATTEMPTED:
+            }
+            case CLICK_ATTEMPTED -> {
                 if (proc.isActive()) {
                     proc.onLostControl();
                 }
@@ -195,7 +183,7 @@ public class InteractWithBlockTask extends Task {
                     mod.getBlockTracker().requestBlockUnreachable(_target);
                     return _wanderTask;
                 }
-                break;
+            }
         }
 
         return null;
@@ -214,9 +202,8 @@ public class InteractWithBlockTask extends Task {
     }
 
     @Override
-    protected boolean isEqual(Task obj) {
-        if (obj instanceof InteractWithBlockTask) {
-            InteractWithBlockTask task = (InteractWithBlockTask) obj;
+    protected boolean isEqual(Task other) {
+        if (other instanceof InteractWithBlockTask task) {
             if ((task._direction == null) != (_direction == null)) return false;
             if (task._direction != null && !task._direction.equals(_direction)) return false;
             if ((task._toUse == null) != (_toUse == null)) return false;
@@ -244,26 +231,15 @@ public class InteractWithBlockTask extends Task {
             mod.getClientBaritone().getLookBehavior().updateTarget(reachable.get(), true);
             if (mod.getClientBaritone().getPlayerContext().isLookingAt(_target)) {
                 if (_toUse != null) {
-                    if (!mod.getInventoryTracker().equipItem(_toUse)) {
-                        Debug.logWarning("Failed to equip item: " + Util.arrayToString(_toUse.getMatches()));
-                    }
+                    mod.getSlotHandler().forceEquipItem(_toUse);
                 } else {
-                    mod.getInventoryTracker().deequipRightClickableItem();
+                    mod.getSlotHandler().forceDeequipRightClickableItem();
                 }
                 mod.getInputControls().tryPress(_interactInput);
                 //mod.getClientBaritone().getInputOverrideHandler().setInputForceState(_interactInput, true);
                 if (_shiftClick) {
                     mod.getInputControls().hold(Input.SNEAK);
                 }
-                //System.out.println(this.ctx.player().playerScreenHandler);
-
-                /*
-                if (this.arrivalTickCount++ > 20 || _cancelRightClick) {
-                    _failed = true;
-                    this.logDirect("Right click timed out/cancelled");
-                    return ClickResponse.CLICK_ATTEMPTED;
-                }
-                 */
             }
             return ClickResponse.WAIT_FOR_CLICK;
         }
@@ -274,7 +250,7 @@ public class InteractWithBlockTask extends Task {
     }
 
     public Optional<Rotation> getCurrentReach() {
-        return getReach(_target, _direction);
+        return LookHelper.getReach(_target, _direction);
     }
 
     private enum ClickResponse {

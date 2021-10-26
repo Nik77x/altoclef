@@ -1,22 +1,17 @@
 package adris.altoclef.tasks.resources;
 
 import adris.altoclef.AltoClef;
-import adris.altoclef.Debug;
-import adris.altoclef.tasks.AbstractDoToEntityTask;
-import adris.altoclef.tasks.MineAndCollectTask;
 import adris.altoclef.tasks.ResourceTask;
+import adris.altoclef.tasks.entity.ShearSheepTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.ItemTarget;
-import adris.altoclef.util.ItemUtil;
 import adris.altoclef.util.MiningRequirement;
-import adris.altoclef.util.csharpisbetter.Util;
+import adris.altoclef.util.helpers.ItemHelper;
 import net.minecraft.block.Block;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.SheepEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.util.DyeColor;
-import net.minecraft.util.Hand;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -29,7 +24,7 @@ public class CollectWoolTask extends ResourceTask {
     private final Item[] _wools;
 
     public CollectWoolTask(DyeColor[] colors, int count) {
-        super(new ItemTarget(ItemUtil.WOOL, count));
+        super(new ItemTarget(ItemHelper.WOOL, count));
         _colors = new HashSet<>(Arrays.asList(colors));
         _count = count;
         _wools = getWoolColorItems(colors);
@@ -46,7 +41,7 @@ public class CollectWoolTask extends ResourceTask {
     private static Item[] getWoolColorItems(DyeColor[] colors) {
         Item[] result = new Item[colors.length];
         for (int i = 0; i < result.length; ++i) {
-            result[i] = ItemUtil.getColorfulItems(colors[i]).wool;
+            result[i] = ItemHelper.getColorfulItems(colors[i]).wool;
         }
         return result;
     }
@@ -58,7 +53,7 @@ public class CollectWoolTask extends ResourceTask {
 
     @Override
     protected void onResourceStart(AltoClef mod) {
-        mod.getBlockTracker().trackBlock(Util.itemsToBlocks(_wools));
+        mod.getBlockTracker().trackBlock(ItemHelper.itemsToBlocks(_wools));
     }
 
     @Override
@@ -69,7 +64,7 @@ public class CollectWoolTask extends ResourceTask {
         // USE DYES + REGULAR WOOL TO CRAFT THE WOOL COLOR!!
 
         // If we find a wool block, break it.
-        Block[] woolBlocks = Util.itemsToBlocks(_wools);
+        Block[] woolBlocks = ItemHelper.itemsToBlocks(_wools);
         if (mod.getBlockTracker().anyFound(woolBlocks)) {
             return new MineAndCollectTask(new ItemTarget(_wools), woolBlocks, MiningRequirement.HAND);
         }
@@ -89,11 +84,9 @@ public class CollectWoolTask extends ResourceTask {
 
         // Only option left is to Kill la Kill.
         return new KillAndLootTask(SheepEntity.class, entity -> {
-            if (entity instanceof SheepEntity) {
-                SheepEntity sheep = (SheepEntity) entity;
+            if (entity instanceof SheepEntity sheep) {
                 // Hunt sheep of the same color.
-                if (!_colors.contains(sheep.getColor())) return false;
-                return ((SheepEntity) entity).isSheared();
+                return _colors.contains(sheep.getColor()) && !sheep.isSheared();
             }
             return false;
         }, new ItemTarget(_wools, _count));
@@ -101,12 +94,12 @@ public class CollectWoolTask extends ResourceTask {
 
     @Override
     protected void onResourceStop(AltoClef mod, Task interruptTask) {
-        mod.getBlockTracker().stopTracking(Util.itemsToBlocks(_wools));
+        mod.getBlockTracker().stopTracking(ItemHelper.itemsToBlocks(_wools));
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        return obj instanceof CollectWoolTask && ((CollectWoolTask) obj)._count == _count;
+    protected boolean isEqualResource(ResourceTask other) {
+        return other instanceof CollectWoolTask && ((CollectWoolTask) other)._count == _count;
     }
 
     @Override
@@ -114,51 +107,4 @@ public class CollectWoolTask extends ResourceTask {
         return "Collect " + _count + " wool.";
     }
 
-    static class ShearSheepTask extends AbstractDoToEntityTask {
-
-        public ShearSheepTask() {
-            super(0, -1, -1);
-        }
-
-        @Override
-        protected boolean isSubEqual(AbstractDoToEntityTask other) {
-            return other instanceof ShearSheepTask;
-        }
-
-        @Override
-        protected Task onEntityInteract(AltoClef mod, Entity entity) {
-            if (!mod.getInventoryTracker().hasItem(Items.SHEARS)) {
-                Debug.logWarning("Failed to shear sheep because you have no shears.");
-                return null;
-            }
-            if (mod.getInventoryTracker().equipItem(Items.SHEARS)) {
-                mod.getController().interactEntity(mod.getPlayer(), entity, Hand.MAIN_HAND);
-            } else {
-                Debug.logWarning("Failed to equip shears for some reason.");
-            }
-
-
-            return null;
-        }
-
-        @Override
-        protected Entity getEntityTarget(AltoClef mod) {
-            Entity found = mod.getEntityTracker().getClosestEntity(mod.getPlayer().getPos(),
-                    (entity) -> {
-                        if (entity instanceof SheepEntity) {
-                            SheepEntity sheep = (SheepEntity) entity;
-                            return !sheep.isShearable() || sheep.isSheared();
-                        }
-
-                        return true;
-                    }, SheepEntity.class
-            );
-            return found;
-        }
-
-        @Override
-        protected String toDebugString() {
-            return "Shearing Sheep";
-        }
-    }
 }

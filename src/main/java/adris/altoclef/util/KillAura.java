@@ -2,12 +2,15 @@ package adris.altoclef.util;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.util.csharpisbetter.TimerGame;
-import adris.altoclef.util.csharpisbetter.Util;
+import adris.altoclef.util.helpers.StlHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.projectile.FireballEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Controls and applies killaura
@@ -35,25 +38,29 @@ public class KillAura {
         // Run force field on map
         switch (mod.getModSettings().getForceFieldStrategy()) {
             case FASTEST:
-                // Just attack whenever you can
-                for (Entity entity : _targets) {
-                    attack(mod, entity);
-                }
+                performFastestAttack(mod);
                 break;
             case SMART:
-                // Attack force mobs ALWAYS.
-                if (_forceHit != null) {
-                    attack(mod, _forceHit);
-                    break;
+
+                if (_targets.size() < 2) {
+                    performDelayedAttack(mod);
+                } else {
+                    // Attack force mobs ALWAYS.
+                    if (_forceHit != null) {
+                        attack(mod, _forceHit);
+                        break;
+                    }
+                    if (_hitDelay.elapsed()) {
+                        _hitDelay.reset();
+
+                        Optional<Entity> toHit = _targets.stream().min(StlHelper.compareValues(entity -> entity.squaredDistanceTo(mod.getPlayer())));
+
+                        toHit.ifPresent(entity -> attack(mod, entity));
+                    }
                 }
-                if (_hitDelay.elapsed()) {
-                    _hitDelay.reset();
-                    Entity toHit = Util.minItem(_targets, (left, right) -> {
-                        double distComp = right.squaredDistanceTo(mod.getPlayer()) - left.squaredDistanceTo(mod.getPlayer());
-                        return (int) Math.signum(distComp);
-                    });
-                    attack(mod, toHit);
-                }
+                break;
+            case DELAY:
+                performDelayedAttack(mod);
                 break;
             case OFF:
                 break;
@@ -64,20 +71,57 @@ public class KillAura {
         _forceFieldRange = range;
     }
 
-    private boolean attack(AltoClef mod, Entity entity) {
-        if (entity == null) return false;
-        if (Double.isInfinite(_forceFieldRange) || entity.squaredDistanceTo(mod.getPlayer()) < _forceFieldRange * _forceFieldRange) {
-            // Equip non-tool
-            mod.getInventoryTracker().deequipHitTool();
-            mod.getControllerExtras().attack(entity);
-            return true;
+    private void performDelayedAttack(AltoClef mod) {
+        // wait for the attack delay
+        if (_targets.isEmpty()) {
+            return;
         }
-        return false;
+
+        Optional<Entity> toHit = _targets.stream().min(StlHelper.compareValues(entity -> entity.squaredDistanceTo(mod.getPlayer())));
+
+        if (mod.getPlayer() == null || mod.getPlayer().getAttackCooldownProgress(0) < 1) {
+            return;
+        }
+
+        toHit.ifPresent(entity -> attack(mod, entity, true));
+    }
+
+    private void performFastestAttack(AltoClef mod) {
+        // Just attack whenever you can
+        for (Entity entity : _targets) {
+            attack(mod, entity);
+        }
+    }
+
+    private void attack(AltoClef mod, Entity entity) {
+        attack(mod, entity, false);
+    }
+    private void attack(AltoClef mod, Entity entity, boolean equipSword) {
+        if (entity == null) return;
+        if (Double.isInfinite(_forceFieldRange) || entity.squaredDistanceTo(mod.getPlayer()) < _forceFieldRange * _forceFieldRange) {
+            boolean canAttack;
+            if (equipSword) {
+                // Equip sword, or if we don't have one just use our fists.
+                Item[] swordsTopPriorityFirst = new Item[] {Items.NETHERITE_SWORD, Items.DIAMOND_SWORD, Items.IRON_SWORD, Items.STONE_SWORD, Items.WOODEN_SWORD};
+                if (mod.getInventoryTracker().hasItem(swordsTopPriorityFirst)) {
+                    canAttack = mod.getSlotHandler().forceEquipItem(swordsTopPriorityFirst);
+                } else {
+                    canAttack = mod.getSlotHandler().forceDeequipHitTool();
+                }
+            } else {
+                // Equip non-tool
+                canAttack = mod.getSlotHandler().forceDeequipHitTool();
+            }
+            if (canAttack) {
+                mod.getControllerExtras().attack(entity);
+            }
+        }
     }
 
     public enum Strategy {
         OFF,
         FASTEST,
+        DELAY,
         SMART
     }
 

@@ -3,9 +3,9 @@ package adris.altoclef.tasks.misc.speedrun;
 import adris.altoclef.AltoClef;
 import adris.altoclef.Debug;
 import adris.altoclef.TaskCatalogue;
-import adris.altoclef.tasks.AbstractDoToEntityTask;
 import adris.altoclef.tasks.ResourceTask;
-import adris.altoclef.tasks.misc.TimeoutWanderTask;
+import adris.altoclef.tasks.entity.AbstractDoToEntityTask;
+import adris.altoclef.tasks.movement.TimeoutWanderTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.trackers.EntityTracker;
 import adris.altoclef.util.ItemTarget;
@@ -64,7 +64,7 @@ public class TradeWithPiglinsTask extends ResourceTask {
             return _goldTask;
         }
         if (!mod.getInventoryTracker().hasItem(Items.GOLD_INGOT)) {
-            if (_goldTask == null) _goldTask = TaskCatalogue.getItemTask("gold_ingot", _goldBuffer);
+            if (_goldTask == null) _goldTask = TaskCatalogue.getItemTask(Items.GOLD_INGOT, _goldBuffer);
             return _goldTask;
         }
 
@@ -87,8 +87,8 @@ public class TradeWithPiglinsTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        return obj instanceof TradeWithPiglinsTask;
+    protected boolean isEqualResource(ResourceTask other) {
+        return other instanceof TradeWithPiglinsTask;
     }
 
     @Override
@@ -180,9 +180,10 @@ public class TradeWithPiglinsTask extends ResourceTask {
 
             setDebugState("Trading with piglin");
 
-            mod.getInventoryTracker().equipItem(Items.GOLD_INGOT);
-            mod.getController().interactEntity(mod.getPlayer(), entity, Hand.MAIN_HAND);
-            _intervalTimeout.reset();
+            if (mod.getSlotHandler().forceEquipItem(Items.GOLD_INGOT)) {
+                mod.getController().interactEntity(mod.getPlayer(), entity, Hand.MAIN_HAND);
+                _intervalTimeout.reset();
+            }
             return null;
         }
 
@@ -190,20 +191,20 @@ public class TradeWithPiglinsTask extends ResourceTask {
         protected Entity getEntityTarget(AltoClef mod) {
             // Ignore trading piglins
             Entity found = mod.getEntityTracker().getClosestEntity(mod.getPlayer().getPos(),
-                    (entity) -> {
+                    entity -> {
                         if (_blacklisted.contains(entity)
                                 || EntityTracker.isTradingPiglin(entity)
                                 || (entity instanceof LivingEntity && ((LivingEntity) entity).isBaby())
                                 || (_currentlyBartering != null && !entity.isInRange(_currentlyBartering, PIGLIN_NEARBY_RADIUS))) {
-                            return true;
+                            return false;
                         }
 
                         if (AVOID_HOGLINS) {
                             // Avoid trading if hoglin is anywhere remotely nearby.
                             Entity closestHoglin = mod.getEntityTracker().getClosestEntity(entity.getPos(), HoglinEntity.class);
-                            return closestHoglin != null && closestHoglin.isInRange(entity, HOGLIN_AVOID_TRADE_RADIUS);
+                            return closestHoglin == null || !closestHoglin.isInRange(entity, HOGLIN_AVOID_TRADE_RADIUS);
                         }
-                        return false;
+                        return true;
                     }, PiglinEntity.class
             );
             if (found == null) {

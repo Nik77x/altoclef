@@ -4,7 +4,11 @@ import adris.altoclef.AltoClef;
 import adris.altoclef.TaskCatalogue;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.MiningRequirement;
+import net.minecraft.item.Items;
 
+/**
+ * Make sure we have a tool at or above a mining level.
+ */
 public class SatisfyMiningRequirementTask extends Task {
 
     private final MiningRequirement _requirement;
@@ -25,13 +29,13 @@ public class SatisfyMiningRequirementTask extends Task {
                 // Will never happen if you program this right
                 break;
             case WOOD:
-                return TaskCatalogue.getItemTask("wooden_pickaxe", 1);
+                return TaskCatalogue.getItemTask(Items.WOODEN_PICKAXE, 1);
             case STONE:
-                return TaskCatalogue.getItemTask("stone_pickaxe", 1);
+                return TaskCatalogue.getItemTask(Items.STONE_PICKAXE, 1);
             case IRON:
-                return TaskCatalogue.getItemTask("iron_pickaxe", 1);
+                return TaskCatalogue.getItemTask(Items.IRON_PICKAXE, 1);
             case DIAMOND:
-                return TaskCatalogue.getItemTask("diamond_pickaxe", 1);
+                return TaskCatalogue.getItemTask(Items.DIAMOND_PICKAXE, 1);
         }
         return null;
     }
@@ -42,10 +46,9 @@ public class SatisfyMiningRequirementTask extends Task {
     }
 
     @Override
-    protected boolean isEqual(Task obj) {
-        if (obj instanceof SatisfyMiningRequirementTask) {
-            SatisfyMiningRequirementTask other = (SatisfyMiningRequirementTask) obj;
-            return other._requirement == _requirement;
+    protected boolean isEqual(Task other) {
+        if (other instanceof SatisfyMiningRequirementTask task) {
+            return task._requirement == _requirement;
         }
         return false;
     }

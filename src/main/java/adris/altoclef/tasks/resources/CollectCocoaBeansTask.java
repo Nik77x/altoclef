@@ -4,7 +4,7 @@ import adris.altoclef.AltoClef;
 import adris.altoclef.tasks.DoToClosestBlockTask;
 import adris.altoclef.tasks.ResourceTask;
 import adris.altoclef.tasks.construction.DestroyBlockTask;
-import adris.altoclef.tasks.misc.SearchWithinBiomeTaks;
+import adris.altoclef.tasks.movement.SearchWithinBiomeTask;
 import adris.altoclef.tasksystem.Task;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -38,9 +38,9 @@ public class CollectCocoaBeansTask extends ResourceTask {
     @Override
     protected Task onResourceTick(AltoClef mod) {
 
-        Predicate<BlockPos> invalidCocoaCheck = (blockPos) -> {
+        Predicate<BlockPos> validCocoa = (blockPos) -> {
             if (!mod.getChunkTracker().isChunkLoaded(blockPos)) {
-                return !_wasFullyGrown.contains(blockPos);
+                return _wasFullyGrown.contains(blockPos);
             }
 
             BlockState s = mod.getWorld().getBlockState(blockPos);
@@ -50,13 +50,13 @@ public class CollectCocoaBeansTask extends ResourceTask {
             } else {
                 if (mature) _wasFullyGrown.add(blockPos);
             }
-            return !mature;
+            return mature;
         };
 
         // Break mature cocoa blocks
-        if (mod.getBlockTracker().anyFound(invalidCocoaCheck, Blocks.COCOA)) {
+        if (mod.getBlockTracker().anyFound(validCocoa, Blocks.COCOA)) {
             setDebugState("Breaking cocoa blocks");
-            return new DoToClosestBlockTask(() -> mod.getPlayer().getPos(), DestroyBlockTask::new, pos -> mod.getBlockTracker().getNearestTracking(pos, invalidCocoaCheck), Blocks.COCOA);
+            return new DoToClosestBlockTask(DestroyBlockTask::new, validCocoa, Blocks.COCOA);
         }
 
         // Dimension
@@ -66,7 +66,7 @@ public class CollectCocoaBeansTask extends ResourceTask {
 
         // Search for jungles
         setDebugState("Exploring around jungles");
-        return new SearchWithinBiomeTaks(Biome.Category.JUNGLE);
+        return new SearchWithinBiomeTask(Biome.Category.JUNGLE);
     }
 
     @Override
@@ -75,8 +75,8 @@ public class CollectCocoaBeansTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        return obj instanceof CollectCocoaBeansTask;
+    protected boolean isEqualResource(ResourceTask other) {
+        return other instanceof CollectCocoaBeansTask;
     }
 
     @Override

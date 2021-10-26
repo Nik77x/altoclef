@@ -8,6 +8,9 @@ import net.minecraft.item.Items;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.RaycastContext;
 
+/**
+ * Removes a liquid source block at a position.
+ */
 public class ClearLiquidTask extends Task {
 
     private final BlockPos _liquidPos;
@@ -25,7 +28,7 @@ public class ClearLiquidTask extends Task {
     protected Task onTick(AltoClef mod) {
         if (mod.getInventoryTracker().hasItem(Items.BUCKET)) {
             mod.getBehaviour().setRayTracingFluidHandling(RaycastContext.FluidHandling.SOURCE_ONLY);
-            return new InteractWithBlockTask(new ItemTarget("bucket", 1), _liquidPos, false);
+            return new InteractWithBlockTask(new ItemTarget(Items.BUCKET, 1), _liquidPos, false);
         }
 
         return new PlaceStructureBlockTask(_liquidPos);
@@ -45,9 +48,8 @@ public class ClearLiquidTask extends Task {
     }
 
     @Override
-    protected boolean isEqual(Task obj) {
-        if (obj instanceof ClearLiquidTask) {
-            ClearLiquidTask task = (ClearLiquidTask) obj;
+    protected boolean isEqual(Task other) {
+        if (other instanceof ClearLiquidTask task) {
             return task._liquidPos.equals(_liquidPos);
         }
         return false;

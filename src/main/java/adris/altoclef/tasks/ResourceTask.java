@@ -2,13 +2,15 @@ package adris.altoclef.tasks;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.tasks.chest.PickupFromChestTask;
+import adris.altoclef.tasks.movement.DefaultGoToDimensionTask;
+import adris.altoclef.tasks.movement.PickupDroppedItemTask;
+import adris.altoclef.tasks.resources.MineAndCollectTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.trackers.ContainerTracker;
 import adris.altoclef.util.Dimension;
 import adris.altoclef.util.ItemTarget;
 import adris.altoclef.util.MiningRequirement;
-import adris.altoclef.util.csharpisbetter.Util;
-import adris.altoclef.util.slots.Slot;
+import adris.altoclef.util.helpers.StlHelper;
 import net.minecraft.block.Block;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.Item;
@@ -18,6 +20,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * The parent for all "collect an item" tasks.
+ *
+ * If the target item is on the ground or in a chest, will grab from those sources first.
+ */
 public abstract class ResourceTask extends Task {
 
     protected final ItemTarget[] _itemTargets;
@@ -45,27 +52,10 @@ public abstract class ResourceTask extends Task {
         this(new ItemTarget(item, targetCount));
     }
 
-    // Returns: Whether this failed.
-    public static boolean ensureInventoryFree(AltoClef mod) {
-        if (mod.getInventoryTracker().isInventoryFull()) {
-            // Throw away!
-            Slot toThrow = mod.getInventoryTracker().getGarbageSlot();
-            if (toThrow != null) {
-                // Equip then throw
-                //Debug.logMessage("Throwing away from inventory slot " + toThrow.getInventorySlot());
-                mod.getInventoryTracker().throwSlot(toThrow);
-                return true;
-            } else {
-                return false;
-            }
-        }
-        return true;
-    }
-
     @Override
     public boolean isFinished(AltoClef mod) {
         //Debug.logInternal("FOOF: " + Arrays.toString(Util.toArray(ItemTarget.class, _itemTargets)));
-        return mod.getInventoryTracker().targetMet(_itemTargets);
+        return mod.getInventoryTracker().targetsMet(_itemTargets);
     }
 
     @Override
@@ -122,7 +112,7 @@ public abstract class ResourceTask extends Task {
         }
         List<BlockPos> chestsWithItem = mod.getContainerTracker().getChestMap().getBlocksWithItem(_itemTargets);
         if (!chestsWithItem.isEmpty()) {
-            BlockPos closest = Util.minItem(chestsWithItem, (left, right) -> (int) (right.getSquaredDistance(mod.getPlayer().getPos(), false) - left.getSquaredDistance(mod.getPlayer().getPos(), false)));
+            BlockPos closest = chestsWithItem.stream().min(StlHelper.compareValues(block -> block.getSquaredDistance(mod.getPlayer().getPos(), false))).get();
             if (closest.isWithinDistance(mod.getPlayer().getPos(), mod.getModSettings().getResourceChestLocateRange())) {
                 _currentChest = closest;
                 return new PickupFromChestTask(_currentChest, _itemTargets);
@@ -134,7 +124,7 @@ public abstract class ResourceTask extends Task {
             ArrayList<Block> satisfiedReqs = new ArrayList<>(Arrays.asList(_mineIfPresent));
             satisfiedReqs.removeIf(block -> !mod.getInventoryTracker().miningRequirementMet(MiningRequirement.getMinimumRequirementForBlock(block)));
             if (!satisfiedReqs.isEmpty()) {
-                if (mod.getBlockTracker().anyFound(Util.toArray(Block.class, satisfiedReqs))) {
+                if (mod.getBlockTracker().anyFound(satisfiedReqs.toArray(Block[]::new))) {
                     BlockPos closest = mod.getBlockTracker().getNearestTracking(mod.getPlayer().getPos(), _mineIfPresent);
                     if (closest != null && closest.isWithinDistance(mod.getPlayer().getPos(), mod.getModSettings().getResourceMineRange())) {
                         _mineLastClosest = closest;
@@ -163,10 +153,9 @@ public abstract class ResourceTask extends Task {
     @Override
     protected boolean isEqual(Task other) {
         // Same target items
-        if (other instanceof ResourceTask) {
-            ResourceTask t = (ResourceTask) other;
+        if (other instanceof ResourceTask t) {
             if (!isEqualResource(t)) return false;
-            return Util.arraysEqual(t._itemTargets, _itemTargets);
+            return Arrays.equals(t._itemTargets, _itemTargets);
         }
         return false;
     }
@@ -177,7 +166,7 @@ public abstract class ResourceTask extends Task {
         result.append(toDebugStringName()).append(": [");
         int c = 0;
         for (ItemTarget target : _itemTargets) {
-            result.append(target.toString());
+            result.append(target != null? target.toString() : "(null)");
             if (++c != _itemTargets.length) {
                 result.append(", ");
             }
@@ -216,7 +205,7 @@ public abstract class ResourceTask extends Task {
 
     protected abstract void onResourceStop(AltoClef mod, Task interruptTask);
 
-    protected abstract boolean isEqualResource(ResourceTask obj);
+    protected abstract boolean isEqualResource(ResourceTask other);
 
     protected abstract String toDebugStringName();
 

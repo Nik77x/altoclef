@@ -2,7 +2,6 @@ package adris.altoclef.tasks.resources;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.tasks.CraftInInventoryTask;
-import adris.altoclef.tasks.MineAndCollectTask;
 import adris.altoclef.tasks.ResourceTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.CraftingRecipe;
@@ -44,7 +43,7 @@ public class CollectNetherBricksTask extends ResourceTask {
             return new MineAndCollectTask(Items.NETHER_BRICKS, _count, new Block[]{Blocks.NETHER_BRICKS}, MiningRequirement.WOOD);
         }
 
-        ItemTarget b = new ItemTarget("nether_brick", 1);
+        ItemTarget b = new ItemTarget(Items.NETHER_BRICK, 1);
         return new CraftInInventoryTask(new ItemTarget(Items.NETHER_BRICK, _count), CraftingRecipe.newShapedRecipe("nether_brick", new ItemTarget[]{b, b, b, b}, 1));
     }
 
@@ -54,8 +53,8 @@ public class CollectNetherBricksTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        return obj instanceof CollectNetherBricksTask;
+    protected boolean isEqualResource(ResourceTask other) {
+        return other instanceof CollectNetherBricksTask;
     }
 
     @Override

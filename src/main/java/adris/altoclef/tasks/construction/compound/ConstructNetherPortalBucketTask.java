@@ -3,17 +3,15 @@ package adris.altoclef.tasks.construction.compound;
 import adris.altoclef.AltoClef;
 import adris.altoclef.Debug;
 import adris.altoclef.TaskCatalogue;
-import adris.altoclef.tasks.GetToBlockTask;
 import adris.altoclef.tasks.InteractWithBlockTask;
 import adris.altoclef.tasks.construction.ClearLiquidTask;
 import adris.altoclef.tasks.construction.DestroyBlockTask;
 import adris.altoclef.tasks.construction.PlaceObsidianBucketTask;
-import adris.altoclef.tasks.construction.PlaceStructureBlockTask;
-import adris.altoclef.tasks.misc.TimeoutWanderTask;
+import adris.altoclef.tasks.movement.TimeoutWanderTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.ItemTarget;
-import adris.altoclef.util.WorldUtil;
 import adris.altoclef.util.csharpisbetter.TimerGame;
+import adris.altoclef.util.helpers.WorldHelper;
 import adris.altoclef.util.progresscheck.MovementProgressChecker;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -26,6 +24,11 @@ import net.minecraft.util.math.Vec3i;
 
 import java.util.HashSet;
 
+/**
+ * Build a nether portal by casting each piece with water + lava.
+ *
+ * Currently the most reliable portal building method.
+ */
 public class ConstructNetherPortalBucketTask extends Task {
 
     // Order here matters
@@ -64,7 +67,7 @@ public class ConstructNetherPortalBucketTask extends Task {
     private final MovementProgressChecker _progressChecker = new MovementProgressChecker(5);
     private final TimeoutWanderTask _wanderTask = new TimeoutWanderTask(25);
     // Stored here to cache lava blacklist
-    private final Task _collectLavaTask = TaskCatalogue.getItemTask("lava_bucket", 1);
+    private final Task _collectLavaTask = TaskCatalogue.getItemTask(Items.LAVA_BUCKET, 1);
     private final TimerGame _refreshTimer = new TimerGame(11);
     private BlockPos _portalOrigin = null;
 
@@ -108,7 +111,7 @@ public class ConstructNetherPortalBucketTask extends Task {
         if (_refreshTimer.elapsed()) {
             Debug.logMessage("Duct tape: Refreshing inventory again just in case");
             _refreshTimer.reset();
-            mod.getInventoryTracker().refreshInventory();
+            mod.getSlotHandler().refreshInventory();
         }
 
         //If too far, reset.
@@ -118,7 +121,7 @@ public class ConstructNetherPortalBucketTask extends Task {
         }
 
         if (_currentDestroyTarget != null) {
-            if (!WorldUtil.isSolid(mod, _currentDestroyTarget)) {
+            if (!WorldHelper.isSolid(mod, _currentDestroyTarget)) {
                 _currentDestroyTarget = null;
             } else {
                 return new DestroyBlockTask(_currentDestroyTarget);
@@ -138,14 +141,14 @@ public class ConstructNetherPortalBucketTask extends Task {
         if (bucketCount < 2) {
             setDebugState("Getting buckets");
             _progressChecker.reset();
-            return TaskCatalogue.getItemTask("bucket", 2);
+            return TaskCatalogue.getItemTask(Items.BUCKET, 2);
         }
 
         // Get flint & steel if we don't have one
         if (!mod.getInventoryTracker().hasItem(Items.FLINT_AND_STEEL)) {
             setDebugState("Getting flint & steel");
             _progressChecker.reset();
-            return TaskCatalogue.getItemTask("flint_and_steel", 1);
+            return TaskCatalogue.getItemTask(Items.FLINT_AND_STEEL, 1);
         }
 
         boolean needsToLookForPortal = _portalOrigin == null;
@@ -155,7 +158,7 @@ public class ConstructNetherPortalBucketTask extends Task {
             if (!mod.getInventoryTracker().hasItem(Items.WATER_BUCKET)) {
                 setDebugState("Getting water");
                 _progressChecker.reset();
-                return TaskCatalogue.getItemTask("water_bucket", 1);
+                return TaskCatalogue.getItemTask(Items.WATER_BUCKET, 1);
             }
 
             boolean foundSpot = false;
@@ -192,7 +195,7 @@ public class ConstructNetherPortalBucketTask extends Task {
             if (frameBlock == Blocks.OBSIDIAN) {
                 // Already satisfied, clear water above if need be.
                 BlockPos waterCheck = framePos.up();
-                if (mod.getWorld().getBlockState(waterCheck).getBlock() == Blocks.WATER && WorldUtil.isSourceBlock(mod, waterCheck, true)) {
+                if (mod.getWorld().getBlockState(waterCheck).getBlock() == Blocks.WATER && WorldHelper.isSourceBlock(mod, waterCheck, true)) {
                     setDebugState("Clearing water from cast");
                     return new ClearLiquidTask(waterCheck);
                 }
@@ -226,7 +229,7 @@ public class ConstructNetherPortalBucketTask extends Task {
         setDebugState("Flinting and Steeling");
 
         // Flint and steel it baby
-        return new InteractWithBlockTask(new ItemTarget("flint_and_steel", 1), Direction.UP, _portalOrigin.down(), true);
+        return new InteractWithBlockTask(new ItemTarget(Items.FLINT_AND_STEEL, 1), Direction.UP, _portalOrigin.down(), true);
     }
 
     @Override
@@ -236,8 +239,8 @@ public class ConstructNetherPortalBucketTask extends Task {
     }
 
     @Override
-    protected boolean isEqual(Task obj) {
-        return obj instanceof ConstructNetherPortalBucketTask;
+    protected boolean isEqual(Task other) {
+        return other instanceof ConstructNetherPortalBucketTask;
     }
 
     @Override

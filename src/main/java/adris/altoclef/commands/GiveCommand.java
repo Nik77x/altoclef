@@ -7,9 +7,9 @@ import adris.altoclef.commandsystem.Arg;
 import adris.altoclef.commandsystem.ArgParser;
 import adris.altoclef.commandsystem.Command;
 import adris.altoclef.commandsystem.CommandException;
-import adris.altoclef.tasks.GiveItemToPlayerTask;
+import adris.altoclef.tasks.entity.GiveItemToPlayerTask;
 import adris.altoclef.util.ItemTarget;
-import adris.altoclef.util.csharpisbetter.Util;
+import adris.altoclef.util.helpers.ItemHelper;
 import net.minecraft.item.ItemStack;
 
 public class GiveCommand extends Command {
@@ -18,8 +18,8 @@ public class GiveCommand extends Command {
     }
 
     @Override
-    protected void Call(AltoClef mod, ArgParser parser) throws CommandException {
-        String username = parser.Get(String.class);
+    protected void call(AltoClef mod, ArgParser parser) throws CommandException {
+        String username = parser.get(String.class);
         if (username == null) {
             if (mod.getButler().hasCurrentUser()) {
                 username = mod.getButler().getCurrentUser();
@@ -29,8 +29,8 @@ public class GiveCommand extends Command {
                 return;
             }
         }
-        String item = parser.Get(String.class);
-        int count = parser.Get(Integer.class);
+        String item = parser.get(String.class);
+        int count = parser.get(Integer.class);
         ItemTarget target = null;
         if (TaskCatalogue.taskExists(item)) {
             // Registered item with task.
@@ -40,7 +40,7 @@ public class GiveCommand extends Command {
             for (int i = 0; i < mod.getPlayer().getInventory().size(); ++i) {
                 ItemStack stack = mod.getPlayer().getInventory().getStack(i);
                 if (!stack.isEmpty()) {
-                    String name = Util.stripItemName(stack.getItem());
+                    String name = ItemHelper.stripItemName(stack.getItem());
                     if (name.equals(item)) {
                         target = new ItemTarget(stack.getItem(), count);
                         break;
@@ -50,7 +50,7 @@ public class GiveCommand extends Command {
         }
         if (target != null) {
             Debug.logMessage("USER: " + username + " : ITEM: " + item + " x " + count);
-            mod.runUserTask(new GiveItemToPlayerTask(username, target), nothing -> finish());
+            mod.runUserTask(new GiveItemToPlayerTask(username, target), this::finish);
         } else {
             mod.log("Item not found or task does not exist for item: " + item);
             finish();

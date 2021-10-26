@@ -1,14 +1,12 @@
 package adris.altoclef.tasks.squashed;
 
 import adris.altoclef.AltoClef;
-import adris.altoclef.Debug;
 import adris.altoclef.TaskCatalogue;
 import adris.altoclef.tasks.CraftInTableTask;
 import adris.altoclef.tasks.ResourceTask;
 import adris.altoclef.tasks.UpgradeInSmithingTableTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.ItemTarget;
-import adris.altoclef.util.csharpisbetter.Util;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.*;
@@ -51,7 +49,7 @@ public class CataloguedResourceTask extends ResourceTask {
         for (ResourceTask task : _tasksToComplete) {
             for (ItemTarget target : task.getItemTargets()) {
                 // If we failed to meet this task's targets, do the task.
-                if (!mod.getInventoryTracker().targetMet(target)) return task;
+                if (!mod.getInventoryTracker().targetsMet(target)) return task;
             }
         }
         return null;
@@ -61,7 +59,7 @@ public class CataloguedResourceTask extends ResourceTask {
     public boolean isFinished(AltoClef mod) {
         for (ResourceTask task : _tasksToComplete) {
             for (ItemTarget target : task.getItemTargets()) {
-                if (!mod.getInventoryTracker().targetMet(target)) return false;
+                if (!mod.getInventoryTracker().targetsMet(target)) return false;
             }
         }
         // All targets are met.
@@ -80,10 +78,9 @@ public class CataloguedResourceTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        if (obj instanceof CataloguedResourceTask) {
-            CataloguedResourceTask other = (CataloguedResourceTask) obj;
-            return Util.arraysEqual(other._targets, _targets);
+    protected boolean isEqualResource(ResourceTask other) {
+        if (other instanceof CataloguedResourceTask task) {
+            return Arrays.equals(task._targets, _targets);
         }
         return false;
     }

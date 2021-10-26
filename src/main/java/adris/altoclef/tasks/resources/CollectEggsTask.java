@@ -1,10 +1,10 @@
 package adris.altoclef.tasks.resources;
 
 import adris.altoclef.AltoClef;
-import adris.altoclef.tasks.DefaultGoToDimensionTask;
-import adris.altoclef.tasks.DoToClosestEntityTask;
-import adris.altoclef.tasks.GetToEntityTask;
 import adris.altoclef.tasks.ResourceTask;
+import adris.altoclef.tasks.entity.DoToClosestEntityTask;
+import adris.altoclef.tasks.movement.DefaultGoToDimensionTask;
+import adris.altoclef.tasks.movement.GetToEntityTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.Dimension;
 import net.minecraft.entity.passive.ChickenEntity;
@@ -21,7 +21,7 @@ public class CollectEggsTask extends ResourceTask {
     public CollectEggsTask(int targetCount) {
         super(Items.EGG, targetCount);
         _count = targetCount;
-        _waitNearChickens = new DoToClosestEntityTask(() -> _mod.getPlayer().getPos(), chicken -> new GetToEntityTask(chicken, 5), ChickenEntity.class);
+        _waitNearChickens = new DoToClosestEntityTask(chicken -> new GetToEntityTask(chicken, 5), ChickenEntity.class);
     }
 
     @Override
@@ -52,8 +52,8 @@ public class CollectEggsTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        return obj instanceof CollectEggsTask;
+    protected boolean isEqualResource(ResourceTask other) {
+        return other instanceof CollectEggsTask;
     }
 
     @Override

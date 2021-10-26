@@ -2,7 +2,6 @@ package adris.altoclef.tasks.resources;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.tasks.CraftInInventoryTask;
-import adris.altoclef.tasks.MineAndCollectTask;
 import adris.altoclef.tasks.ResourceTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.CraftingRecipe;
@@ -52,8 +51,8 @@ public class CollectWheatTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        return obj instanceof CollectWheatTask;
+    protected boolean isEqualResource(ResourceTask other) {
+        return other instanceof CollectWheatTask;
     }
 
     @Override

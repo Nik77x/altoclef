@@ -3,15 +3,20 @@ package adris.altoclef.tasks.misc.speedrun;
 import adris.altoclef.AltoClef;
 import adris.altoclef.Debug;
 import adris.altoclef.TaskCatalogue;
-import adris.altoclef.tasks.*;
+import adris.altoclef.tasks.DoToClosestBlockTask;
+import adris.altoclef.tasks.entity.AbstractKillEntityTask;
+import adris.altoclef.tasks.entity.DoToClosestEntityTask;
 import adris.altoclef.tasks.misc.EquipArmorTask;
+import adris.altoclef.tasks.movement.GetToBlockTask;
+import adris.altoclef.tasks.movement.PickupDroppedItemTask;
+import adris.altoclef.tasks.resources.MineAndCollectTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.ItemTarget;
 import adris.altoclef.util.MiningRequirement;
-import adris.altoclef.util.WorldUtil;
 import adris.altoclef.util.baritone.GoalAnd;
 import adris.altoclef.util.csharpisbetter.TimerGame;
-import adris.altoclef.util.csharpisbetter.Util;
+import adris.altoclef.util.helpers.ItemHelper;
+import adris.altoclef.util.helpers.WorldHelper;
 import baritone.api.pathing.goals.Goal;
 import baritone.api.pathing.goals.GoalGetToBlock;
 import baritone.api.utils.Rotation;
@@ -34,10 +39,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 /**
  * Here we go
@@ -92,16 +94,16 @@ public class KillEnderDragonTask extends Task {
             ));
         }
 
-        Task pickupDrops = getPickupTaskIfAny(mod, Util.toArray(Item.class, toPickUp));
+        Task pickupDrops = getPickupTaskIfAny(mod, toPickUp.toArray(Item[]::new));
         if (pickupDrops != null) {
             setDebugState("Picking up drops in end.");
             return pickupDrops;
         }
 
         // If not equipped diamond armor and we have any, equip it.
-        for (String armor : DIAMOND_ARMORS) {
+        for (Item armor : ItemHelper.DIAMOND_ARMORS) {
             try {
-                if (mod.getInventoryTracker().hasItem(armor) && !mod.getInventoryTracker().isArmorEquipped(TaskCatalogue.getItemMatches(armor)[0])) {
+                if (mod.getInventoryTracker().hasItem(armor) && !mod.getInventoryTracker().isArmorEquipped(armor)) {
                     setDebugState("Equipping " + armor);
                     return new EquipArmorTask(armor);
                 }
@@ -123,9 +125,7 @@ public class KillEnderDragonTask extends Task {
         if (mod.getBlockTracker().anyFound(Blocks.END_PORTAL)) {
             setDebugState("Entering portal to beat the game.");
             return new DoToClosestBlockTask(
-                    () -> mod.getPlayer().getPos(),
                     blockPos -> new GetToBlockTask(blockPos.up(), false),
-                    pos -> mod.getBlockTracker().getNearestTracking(pos, Blocks.END_PORTAL),
                     Blocks.END_PORTAL
             );
         }
@@ -147,14 +147,16 @@ public class KillEnderDragonTask extends Task {
         // Blow up the nearest end crystal
         if (mod.getEntityTracker().entityFound(EndCrystalEntity.class)) {
             setDebugState("Kamakazeeing crystals");
-            return new DoToClosestEntityTask(() -> mod.getPlayer().getPos(),
-                    (toDestroy) -> {
-                        if (toDestroy.isInRange(mod.getPlayer(), 7)) {
-                            mod.getControllerExtras().attack(toDestroy);
-                        }
-                        // Go next to the crystal, arbitrary where we just need to get close.
-                        return new GetToBlockTask(toDestroy.getBlockPos().add(1, 0, 0), false);
-                    }, EndCrystalEntity.class);
+            return new DoToClosestEntityTask(
+                (toDestroy) -> {
+                    if (toDestroy.isInRange(mod.getPlayer(), 7)) {
+                        mod.getControllerExtras().attack(toDestroy);
+                    }
+                    // Go next to the crystal, arbitrary where we just need to get close.
+                    return new GetToBlockTask(toDestroy.getBlockPos().add(1, 0, 0), false);
+                },
+                EndCrystalEntity.class
+            );
         }
 
         // Punk dragon
@@ -174,8 +176,8 @@ public class KillEnderDragonTask extends Task {
     }
 
     @Override
-    protected boolean isEqual(Task obj) {
-        return obj instanceof KillEnderDragonTask;
+    protected boolean isEqual(Task other) {
+        return other instanceof KillEnderDragonTask;
     }
 
     @Override
@@ -189,7 +191,7 @@ public class KillEnderDragonTask extends Task {
 
     private BlockPos locateExitPortalTop(AltoClef mod) {
         if (!mod.getChunkTracker().isChunkLoaded(new BlockPos(0, 64, 0))) return null;
-        int height = WorldUtil.getGroundHeight(mod, 0, 0, Blocks.BEDROCK);
+        int height = WorldHelper.getGroundHeight(mod, 0, 0, Blocks.BEDROCK);
         if (height != -1) return new BlockPos(0, height, 0);
         return null;
     }
@@ -227,7 +229,7 @@ public class KillEnderDragonTask extends Task {
                 _hitResetTimer.reset();
                 Debug.logInternal("HIT");
                 mod.getInputControls().tryPress(Input.CLICK_LEFT);
-                mod.getPlayer().swingHand(Hand.MAIN_HAND);
+                //mod.getPlayer().swingHand(Hand.MAIN_HAND);
             }
             if (_hitHoldTimer.elapsed()) {
                 if (!_wasReleased) {
@@ -279,8 +281,7 @@ public class KillEnderDragonTask extends Task {
             boolean perchingOrGettingReady = dragonPhase.getType() == PhaseType.LANDING || dragonPhase.isSittingOrHovering();
 
             switch (_mode) {
-                case RAILING:
-
+                case RAILING -> {
                     if (!perchingOrGettingReady) {
                         Debug.logMessage("Dragon no longer perching.");
                         mod.getClientBaritone().getCustomGoalProcess().onLostControl();
@@ -331,8 +332,8 @@ public class KillEnderDragonTask extends Task {
                         }
                     }
                     setDebugState("Railing on dragon");
-                    break;
-                case WAITING_FOR_PERCH:
+                }
+                case WAITING_FOR_PERCH -> {
                     stopHitting(mod);
                     if (perchingOrGettingReady) {
                         // We're perching!!
@@ -360,7 +361,7 @@ public class KillEnderDragonTask extends Task {
                         );
                     }
                     setDebugState("Waiting for perch");
-                    break;
+                }
             }
             return null;
         }
@@ -374,8 +375,8 @@ public class KillEnderDragonTask extends Task {
         }
 
         @Override
-        protected boolean isEqual(Task obj) {
-            return obj instanceof PunkEnderDragonTask;
+        protected boolean isEqual(Task other) {
+            return other instanceof PunkEnderDragonTask;
         }
 
         @Override
@@ -398,7 +399,7 @@ public class KillEnderDragonTask extends Task {
                 double angle = Math.PI * 2 * Math.random();
                 int x = (int) (radius * Math.cos(angle)),
                         z = (int) (radius * Math.sin(angle));
-                int y = WorldUtil.getGroundHeight(mod, x, z);
+                int y = WorldHelper.getGroundHeight(mod, x, z);
                 if (y == -1) continue;
                 BlockPos check = new BlockPos(x, y, z);
                 if (mod.getWorld().getBlockState(check).getBlock() == Blocks.END_STONE) {

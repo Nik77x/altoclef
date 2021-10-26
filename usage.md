@@ -16,7 +16,8 @@ Commands are prefixed with `@`. Here's a list along with their functions:
 | `follow [player=<you>]` | Follow a player. If sent via `/msg`, will follow the player who sent the command. | `@follow TacoTechnica` `/msg Bot follow` |
 | `food [amount]` | Collects `[amount]` units of food (1 unit = 1/2 drumstick). Collects from various sources (animals, crops) | `@food 20` |
 | `gamer` | Beats the game epic style | `@gamer` |
-| `get [item] [quantity=1]` | Gets `[quantity]` units of `[item]` in the bots inventory. Not every resource is get-able. | `@get diamond 3` |
+| `get [item] [quantity=1]` | Gets `[quantity]` units of `[item]` in the bots inventory. Can also pass a comma-separated list to get multiple items (`@get [item1 count1, item2 count2, ...]`). Not every resource is get-able. | `@get diamond 3` `@get [cobblestone 40, wooden_door, glass 4]` |
+| `list` | Prints a list of all get-able items | |
 | `give [player=<you>] [item] [quantity=1]` | Gives `[player]` `[quantity]` units of `[item]`, getting said items if the bot doesn't have them. If sent via `/msg`, will follow the player who sent the command. | `/msg Bot give iron_pickaxe` |
 | `goto [x] [y] [z] [dimension=<current>]` | Goes to (`[x]`,`[y]`, `[z]`) in a given `[dimension]`. Travels to `[dimension]` if not there already. Can also omit coordinates to just go to a dimension. Passing 2 values as coordinates goes to X Z coordinates instead. | `@goto 100 64 100 overworld` `@goto nether` `@goto 100 100` |
 | `inventory [item?]` | Prints the bots inventory, OR how many items of a specific type the bot has. Mostly useful when running through `/msg`. | `/msg Bot inventory` `/msg Bot inventory cobblestone` |
@@ -49,9 +50,12 @@ Here's a list of some highlights.
 
 ## Bot Settings
 
-After running the game with the mod once, a file called `altoclef_settings.json` should appear in your `.minecraft` directory.
-This contains `altoclef` related settings. Check [Settings.java](https://github.com/gaucho-matrero/altoclef/blob/main/src/main/java/adris/altoclef/Settings.java)
+After running the game with the mod once, a file called `altoclef_settings.json` should appear in your `.minecraft` directory. This contains `altoclef` related settings.
+
+Check [Settings.java](https://github.com/gaucho-matrero/altoclef/blob/main/src/main/java/adris/altoclef/Settings.java)
 for descriptions on what each setting does.
+
+After modifying your local settings, run `@reload_settings` to apply your changes in-game.
 
 
 ## /msg: The Butler System
@@ -65,17 +69,17 @@ located in your `.minecraft` directory. Make sure your name is not found in `alt
 
 To toggle whitelist/blacklist, check the `useButlerBlacklist` and `useButlerWhitelist` settings.
 
-**WARNING:** If you set `useButlerWhitelist` to true, ALL PLAYERS will be able to send commands to the bot. Be extra careful with this one.
+**WARNING:** If you set `useButlerWhitelist` to false, ALL PLAYERS will be able to send commands to the bot. Be extra careful with this one.
 
 ### Expect delayed messages
 
-Due to spam message kick restrictions, the butler will send messages at a delayed rate. Messages to authorized
-users are prioritized.
+Servers auto-kick players that rapidly send messages. For this reason, the butler will send messages at a delayed rate. When sending messages, messages to authorized
+users are prioritized and sent first.
 
 ### Dealing with custom /msg outputs on servers
 
-If the receiver of a `/msg` doesn't get a message that looks like `X whispers to you: Y` and it's not being
-picked up by altoclef, you can add to the `whisperFormats` setting.
+If the server's whisper /msg system doesn't send players a message that looks like `X whispers to you: Y` and it's not being
+picked up by altoclef, you can append the server's custom whisper format in the `whisperFormats` setting.
 
 **NOTE:** At least for now, you must escape brackets and paranthesis. Example: To receive messages that look like `[Player -> me] message` the format string is `\[{from} -> {to}\] {message}`
 
