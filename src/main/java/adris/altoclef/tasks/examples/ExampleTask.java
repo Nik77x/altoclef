@@ -2,8 +2,8 @@ package adris.altoclef.tasks.examples;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.TaskCatalogue;
-import adris.altoclef.tasks.GetToBlockTask;
 import adris.altoclef.tasks.construction.PlaceBlockTask;
+import adris.altoclef.tasks.movement.GetToBlockTask;
 import adris.altoclef.tasksystem.Task;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.Items;
@@ -35,11 +35,11 @@ public class ExampleTask extends Task {
          */
 
         if (mod.getInventoryTracker().getItemCount(Items.STONE_PICKAXE) < _numberOfStonePickaxesToGrab) {
-            return TaskCatalogue.getItemTask("stone_pickaxe", _numberOfStonePickaxesToGrab);
+            return TaskCatalogue.getItemTask(Items.STONE_PICKAXE, _numberOfStonePickaxesToGrab);
         }
 
         if (!mod.getInventoryTracker().hasItem(Items.COBBLESTONE)) {
-            return TaskCatalogue.getItemTask("cobblestone", 1);
+            return TaskCatalogue.getItemTask(Items.COBBLESTONE, 1);
         }
 
         if (mod.getChunkTracker().isChunkLoaded(_whereToPlaceCobblestone)) {
@@ -64,9 +64,9 @@ public class ExampleTask extends Task {
     }
 
     @Override
-    protected boolean isEqual(Task obj) {
-        if (obj instanceof ExampleTask) {
-            ExampleTask task = (ExampleTask) obj;
+    protected boolean isEqual(Task other) {
+        if (other instanceof ExampleTask) {
+            ExampleTask task = (ExampleTask) other;
             return task._numberOfStonePickaxesToGrab == _numberOfStonePickaxesToGrab
                     && task._whereToPlaceCobblestone.equals(_whereToPlaceCobblestone);
         }

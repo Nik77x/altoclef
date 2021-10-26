@@ -3,13 +3,13 @@ package adris.altoclef.tasks.resources;
 import adris.altoclef.AltoClef;
 import adris.altoclef.tasks.DoToClosestBlockTask;
 import adris.altoclef.tasks.InteractWithBlockTask;
-import adris.altoclef.tasks.PickupDroppedItemTask;
 import adris.altoclef.tasks.ResourceTask;
 import adris.altoclef.tasks.construction.DestroyBlockTask;
+import adris.altoclef.tasks.movement.PickupDroppedItemTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.ItemTarget;
-import adris.altoclef.util.WorldUtil;
-import adris.altoclef.util.csharpisbetter.Util;
+import adris.altoclef.util.helpers.StlHelper;
+import adris.altoclef.util.helpers.WorldHelper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -19,6 +19,7 @@ import net.minecraft.item.Item;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -27,7 +28,7 @@ public class CollectCropTask extends ResourceTask {
 
     private final ItemTarget _cropToCollect;
     private final Item[] _cropSeed;
-    private final Predicate<BlockPos> _ignoreBreak;
+    private final Predicate<BlockPos> _canBreak;
     private final Block[] _cropBlock;
 
     private final Set<BlockPos> _emptyCropland = new HashSet<>();
@@ -37,17 +38,17 @@ public class CollectCropTask extends ResourceTask {
     // To prevent infinite chunk-unload-reload loop bug
     private final HashSet<BlockPos> _wasFullyGrown = new HashSet<>();
 
-    public CollectCropTask(ItemTarget cropToCollect, Block[] cropBlock, Item[] cropSeed, Predicate<BlockPos> ignoreBreak) {
+    public CollectCropTask(ItemTarget cropToCollect, Block[] cropBlock, Item[] cropSeed, Predicate<BlockPos> canBreak) {
         super(cropToCollect);
         _cropToCollect = cropToCollect;
         _cropSeed = cropSeed;
-        _ignoreBreak = ignoreBreak;
+        _canBreak = canBreak;
         _cropBlock = cropBlock;
         _collectSeedTask = new PickupDroppedItemTask(new ItemTarget(cropSeed, 1), true);
     }
 
     public CollectCropTask(ItemTarget cropToCollect, Block[] cropBlock, Item... cropSeed) {
-        this(cropToCollect, cropBlock, cropSeed, ignore -> false);
+        this(cropToCollect, cropBlock, cropSeed, canBreak -> true);
     }
 
     public CollectCropTask(ItemTarget cropToCollect, Block cropBlock, Item... cropSeed) {
@@ -103,32 +104,36 @@ public class CollectCropTask extends ResourceTask {
             _emptyCropland.removeIf(blockPos -> !isEmptyCrop(mod, blockPos));
             assert !_emptyCropland.isEmpty();
             return new DoToClosestBlockTask(
-                    () -> mod.getPlayer().getPos(),
                     blockPos -> new InteractWithBlockTask(new ItemTarget(_cropSeed, 1), Direction.UP, blockPos.down(), true),
-                    pos -> Util.minItem(_emptyCropland, (block) -> block.getSquaredDistance(pos, false)), Blocks.FARMLAND); // Blocks.FARMLAND is useless to be put here
+                    pos -> _emptyCropland.stream().min(StlHelper.compareValues(block -> block.getSquaredDistance(pos, false))).orElse(null),
+                    _emptyCropland::contains,
+                    Blocks.FARMLAND); // Blocks.FARMLAND is useless to be put here
         }
 
-        Predicate<BlockPos> invalidCrop = ignoreBlock -> {
-            if (_ignoreBreak.test(ignoreBlock)) return true;
+        Predicate<BlockPos> validCrop = blockPos -> {
+            if (!_canBreak.test(blockPos)) return false;
             // Breaking immature crops will only yield one output! This is a bad move.
-            if (mod.getModSettings().shouldReplantCrops() && !isMature(mod, ignoreBlock)) return true;
+            if (mod.getModSettings().shouldReplantCrops() && !isMature(mod, blockPos)) return false;
             // Wheat must be mature always.
-            return mod.getWorld().getBlockState(ignoreBlock).getBlock() == Blocks.WHEAT && !isMature(mod, ignoreBlock);
+            if (mod.getWorld().getBlockState(blockPos).getBlock() == Blocks.WHEAT)
+                return isMature(mod, blockPos);
+            return true;
         };
 
         // Dimension
-        if (isInWrongDimension(mod) && !mod.getBlockTracker().anyFound(invalidCrop, _cropBlock)) {
+        if (isInWrongDimension(mod) && !mod.getBlockTracker().anyFound(validCrop, _cropBlock)) {
             return getToCorrectDimensionTask(mod);
         }
 
         // Break crop blocks.
         setDebugState("Breaking crops.");
         return new DoToClosestBlockTask(
-                () -> mod.getPlayer().getPos(),
                 blockPos -> {
                     _emptyCropland.add(blockPos);
                     return new DestroyBlockTask(blockPos);
-                }, pos -> mod.getBlockTracker().getNearestTracking(pos, invalidCrop, _cropBlock)
+                },
+                validCrop,
+                _cropBlock
         );
     }
 
@@ -158,14 +163,13 @@ public class CollectCropTask extends ResourceTask {
     }
 
     private boolean isEmptyCrop(AltoClef mod, BlockPos pos) {
-        return WorldUtil.isAir(mod, pos);
+        return WorldHelper.isAir(mod, pos);
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        if (obj instanceof CollectCropTask) {
-            CollectCropTask task = (CollectCropTask) obj;
-            return Util.arraysEqual(task._cropSeed, _cropSeed) && Util.arraysEqual(task._cropBlock, _cropBlock) && task._cropToCollect.equals(_cropToCollect);
+    protected boolean isEqualResource(ResourceTask other) {
+        if (other instanceof CollectCropTask task) {
+            return Arrays.equals(task._cropSeed, _cropSeed) && Arrays.equals(task._cropBlock, _cropBlock) && task._cropToCollect.equals(_cropToCollect);
         }
         return false;
     }
@@ -183,8 +187,7 @@ public class CollectCropTask extends ResourceTask {
         }
         // Prune if we're not mature/fully grown wheat.
         BlockState s = mod.getWorld().getBlockState(blockPos);
-        if (s.getBlock() instanceof CropBlock) {
-            CropBlock crop = (CropBlock) s.getBlock();
+        if (s.getBlock() instanceof CropBlock crop) {
             boolean mature = crop.isMature(s);
             if (_wasFullyGrown.contains(blockPos)) {
                 if (!mature) _wasFullyGrown.remove(blockPos);

@@ -1,7 +1,6 @@
 package adris.altoclef.tasks.resources;
 
 import adris.altoclef.AltoClef;
-import adris.altoclef.tasks.MineAndCollectTask;
 import adris.altoclef.tasks.ResourceTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.MiningRequirement;
@@ -39,10 +38,9 @@ public class CollectCobblestoneTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        if (obj instanceof CollectCobblestoneTask) {
-            CollectCobblestoneTask other = (CollectCobblestoneTask) obj;
-            return other._count == _count;
+    protected boolean isEqualResource(ResourceTask other) {
+        if (other instanceof CollectCobblestoneTask task) {
+            return task._count == _count;
         }
         return false;
     }

@@ -2,14 +2,19 @@ package adris.altoclef.tasks;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.tasksystem.Task;
-import adris.altoclef.util.csharpisbetter.Util;
+import adris.altoclef.util.helpers.WorldHelper;
 import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
+import java.util.Arrays;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+/**
+ * Finds the closest reachable block and passes that block to a task.
+ */
 public class DoToClosestBlockTask extends AbstractDoToClosestObjectTask<BlockPos> {
 
     private final Block[] _targetBlocks;
@@ -19,31 +24,45 @@ public class DoToClosestBlockTask extends AbstractDoToClosestObjectTask<BlockPos
 
     private final Function<BlockPos, Task> _getTargetTask;
 
+    private final Predicate<BlockPos> _isValid;
 
-    public DoToClosestBlockTask(AltoClef mod, Supplier<Vec3d> getOriginSupplier, Function<BlockPos, Task> getTargetTask, Block... blocks) {
-        this(getOriginSupplier, getTargetTask, (origin) -> mod.getBlockTracker().getNearestTracking(origin, blocks), blocks);
-    }
-
-    public DoToClosestBlockTask(Supplier<Vec3d> getOriginSupplier, Function<BlockPos, Task> getTargetTask, Function<Vec3d, BlockPos> getClosestBlock, Block... blocks) {
+    public DoToClosestBlockTask(Supplier<Vec3d> getOriginSupplier, Function<BlockPos, Task> getTargetTask, Function<Vec3d, BlockPos> getClosestBlock, Predicate<BlockPos> isValid, Block... blocks) {
         _getOriginPos = getOriginSupplier;
         _getTargetTask = getTargetTask;
-        _targetBlocks = blocks;
         _getClosest = getClosestBlock;
+        _isValid = isValid;
+        _targetBlocks = blocks;
+    }
+
+    public DoToClosestBlockTask(Function<BlockPos, Task> getTargetTask, Function<Vec3d, BlockPos> getClosestBlock, Predicate<BlockPos> isValid, Block... blocks) {
+        this(null, getTargetTask, getClosestBlock, isValid, blocks);
+    }
+    public DoToClosestBlockTask(Function<BlockPos, Task> getTargetTask, Predicate<BlockPos> isValid, Block... blocks) {
+        this(null, getTargetTask, null, isValid, blocks);
+    }
+    public DoToClosestBlockTask(Function<BlockPos, Task> getTargetTask, Block... blocks) {
+        this(getTargetTask, null, blockPos -> true, blocks);
     }
 
     @Override
     protected Vec3d getPos(AltoClef mod, BlockPos obj) {
-        return new Vec3d(obj.getX(), obj.getY(), obj.getZ());
+        return WorldHelper.toVec3d(obj);
     }
 
     @Override
     protected BlockPos getClosestTo(AltoClef mod, Vec3d pos) {
-        return _getClosest.apply(pos);
+        if (_getClosest != null) {
+            return _getClosest.apply(pos);
+        }
+        return mod.getBlockTracker().getNearestTracking(pos, _isValid, _targetBlocks);
     }
 
     @Override
     protected Vec3d getOriginPos(AltoClef mod) {
-        return _getOriginPos.get();
+        if (_getOriginPos != null) {
+            return _getOriginPos.get();
+        }
+        return mod.getPlayer().getPos();
     }
 
     @Override
@@ -55,7 +74,9 @@ public class DoToClosestBlockTask extends AbstractDoToClosestObjectTask<BlockPos
     protected boolean isValid(AltoClef mod, BlockPos obj) {
         // Assume we're valid since we're in the same chunk.
         if (!mod.getChunkTracker().isChunkLoaded(obj)) return true;
-
+        // Our valid predicate
+        if (_isValid != null && !_isValid.test(obj)) return false;
+        // Correct block
         return mod.getBlockTracker().blockIsValid(obj, _targetBlocks);
     }
 
@@ -70,10 +91,9 @@ public class DoToClosestBlockTask extends AbstractDoToClosestObjectTask<BlockPos
     }
 
     @Override
-    protected boolean isEqual(Task obj) {
-        if (obj instanceof DoToClosestBlockTask) {
-            DoToClosestBlockTask task = (DoToClosestBlockTask) obj;
-            return Util.arraysEqual(task._targetBlocks, _targetBlocks);
+    protected boolean isEqual(Task other) {
+        if (other instanceof DoToClosestBlockTask task) {
+            return Arrays.equals(task._targetBlocks, _targetBlocks);
         }
         return false;
     }

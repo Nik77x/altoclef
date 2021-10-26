@@ -2,12 +2,13 @@ package adris.altoclef.tasksystem;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.Debug;
-import adris.altoclef.tasks.misc.TimeoutWanderTask;
+import adris.altoclef.tasks.movement.TimeoutWanderTask;
 
 import java.util.function.Predicate;
 
 public abstract class Task {
 
+    private String _oldDebugState = "";
     private String _debugState = "";
 
     private Task _sub = null;
@@ -30,6 +31,11 @@ public abstract class Task {
         if (_stopped) return;
 
         Task newSub = onTick(mod);
+        // Debug state print
+        if (!_oldDebugState.equals(_debugState)) {
+            Debug.logInternal(toString());
+            _oldDebugState = _debugState;
+        }
         // We have a sub task
         if (newSub != null) {
             if (!newSub.isEqual(_sub)) {
@@ -91,12 +97,10 @@ public abstract class Task {
     }
 
     protected void setDebugState(String state) {
-        if (!_debugState.equals(state)) {
-            _debugState = state;
-            Debug.logInternal(toString());
-        } else {
-            _debugState = state;
+        if (state == null) {
+            state = "";
         }
+        _debugState = state;
     }
 
     // Virtual
@@ -119,7 +123,7 @@ public abstract class Task {
     // interruptTask = null if the task stopped cleanly
     protected abstract void onStop(AltoClef mod, Task interruptTask);
 
-    protected abstract boolean isEqual(Task obj);
+    protected abstract boolean isEqual(Task other);
 
     protected abstract String toDebugString();
 
@@ -130,8 +134,8 @@ public abstract class Task {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Task) {
-            return isEqual((Task) obj);
+        if (obj instanceof Task task) {
+            return isEqual(task);
         }
         return false;
     }

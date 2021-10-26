@@ -2,8 +2,8 @@ package adris.altoclef.tasks.resources;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.TaskCatalogue;
-import adris.altoclef.tasks.DefaultGoToDimensionTask;
 import adris.altoclef.tasks.ResourceTask;
+import adris.altoclef.tasks.movement.DefaultGoToDimensionTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.Dimension;
 import adris.altoclef.util.ItemTarget;
@@ -52,7 +52,7 @@ public class CollectMagmaCreamTask extends ResourceTask {
                 if (neededCream > currentBlazePowderPotential) {
                     // Kill blazes as no magma cube was found.
                     setDebugState("Getting blaze powder");
-                    return TaskCatalogue.getItemTask("blaze_powder", neededCream - currentCream);
+                    return TaskCatalogue.getItemTask(Items.BLAZE_POWDER, neededCream - currentCream);
                 }
                 setDebugState("Going back to overworld to kill slimes, we have enough blaze powder and no nearby magma cubes.");
                 return new DefaultGoToDimensionTask(Dimension.OVERWORLD);
@@ -60,7 +60,7 @@ public class CollectMagmaCreamTask extends ResourceTask {
                 int currentSlime = mod.getInventoryTracker().getItemCount(Items.SLIME_BALL);
                 if (neededCream > currentSlime) {
                     setDebugState("Getting slime balls");
-                    return TaskCatalogue.getItemTask("slime_ball", neededCream - currentCream);
+                    return TaskCatalogue.getItemTask(Items.SLIME_BALL, neededCream - currentCream);
                 }
                 setDebugState("Going to nether to get blaze powder and/or kill magma cubes");
                 return new DefaultGoToDimensionTask(Dimension.NETHER);
@@ -79,8 +79,8 @@ public class CollectMagmaCreamTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        return obj instanceof CollectMagmaCreamTask;
+    protected boolean isEqualResource(ResourceTask other) {
+        return other instanceof CollectMagmaCreamTask;
     }
 
     @Override

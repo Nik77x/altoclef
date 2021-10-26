@@ -3,8 +3,8 @@ package adris.altoclef.tasks.resources;
 import adris.altoclef.AltoClef;
 import adris.altoclef.Debug;
 import adris.altoclef.TaskCatalogue;
-import adris.altoclef.tasks.AbstractDoToEntityTask;
 import adris.altoclef.tasks.ResourceTask;
+import adris.altoclef.tasks.entity.AbstractDoToEntityTask;
 import adris.altoclef.tasksystem.Task;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.CowEntity;
@@ -33,7 +33,7 @@ public class CollectMilkTask extends ResourceTask {
     protected Task onResourceTick(AltoClef mod) {
         // Make sure we have a bucket.
         if (!mod.getInventoryTracker().hasItem(Items.BUCKET)) {
-            return TaskCatalogue.getItemTask("bucket", 1);
+            return TaskCatalogue.getItemTask(Items.BUCKET, 1);
         }
         // Dimension
         if (!mod.getEntityTracker().entityFound(CowEntity.class) && isInWrongDimension(mod)) {
@@ -48,8 +48,8 @@ public class CollectMilkTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        return obj instanceof CollectMilkTask;
+    protected boolean isEqualResource(ResourceTask other) {
+        return other instanceof CollectMilkTask;
     }
 
     @Override
@@ -74,10 +74,8 @@ public class CollectMilkTask extends ResourceTask {
                 Debug.logWarning("Failed to milk cow because you have no bucket.");
                 return null;
             }
-            if (mod.getInventoryTracker().equipItem(Items.BUCKET)) {
+            if (mod.getSlotHandler().forceEquipItem(Items.BUCKET)) {
                 mod.getController().interactEntity(mod.getPlayer(), entity, Hand.MAIN_HAND);
-            } else {
-                Debug.logWarning("Failed to equip bucket for some reason.");
             }
 
 
@@ -86,8 +84,7 @@ public class CollectMilkTask extends ResourceTask {
 
         @Override
         protected Entity getEntityTarget(AltoClef mod) {
-            Entity found = mod.getEntityTracker().getClosestEntity(mod.getPlayer().getPos(), CowEntity.class);
-            return found;
+            return mod.getEntityTracker().getClosestEntity(mod.getPlayer().getPos(), CowEntity.class);
         }
 
         @Override

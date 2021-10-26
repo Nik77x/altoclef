@@ -4,6 +4,10 @@ import adris.altoclef.AltoClef;
 import adris.altoclef.Debug;
 import adris.altoclef.TaskCatalogue;
 import adris.altoclef.tasks.resources.CollectFuelTask;
+import adris.altoclef.tasks.slot.ClickSlotTask;
+import adris.altoclef.tasks.slot.EnsureFreeInventorySlotTask;
+import adris.altoclef.tasks.slot.MoveItemToSlotTask;
+import adris.altoclef.tasks.slot.ThrowSlotTask;
 import adris.altoclef.tasksystem.ITaskWithDowntime;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.trackers.ContainerTracker;
@@ -11,23 +15,27 @@ import adris.altoclef.trackers.InventoryTracker;
 import adris.altoclef.util.ItemTarget;
 import adris.altoclef.util.MiningRequirement;
 import adris.altoclef.util.SmeltTarget;
-import adris.altoclef.util.csharpisbetter.Util;
 import adris.altoclef.util.progresscheck.IProgressChecker;
 import adris.altoclef.util.progresscheck.LinearProgressChecker;
 import adris.altoclef.util.slots.FurnaceSlot;
+import adris.altoclef.util.slots.Slot;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.screen.FurnaceScreenHandler;
+import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayList;
 import java.util.List;
 
+
+/**
+ * Smelt in a furnace, placing a furnace & collecting fuel as needed.
+ */
 // Ref
 // https://minecraft.gamepedia.com/Smelting
-
 public class SmeltInFurnaceTask extends ResourceTask {
 
     private final SmeltTarget[] _targets;
@@ -50,7 +58,7 @@ public class SmeltInFurnaceTask extends ResourceTask {
         for (SmeltTarget target : recipeTargets) {
             result.add(target.getItem());
         }
-        return Util.toArray(ItemTarget.class, result);
+        return result.toArray(ItemTarget[]::new);
     }
 
     public void ignoreMaterials() {
@@ -78,7 +86,7 @@ public class SmeltInFurnaceTask extends ResourceTask {
     protected void onResourceStop(AltoClef mod, Task interruptTask) {
         // Close furnace screen
         if (AltoClef.inGame()) {
-            mod.getPlayer().closeHandledScreen();
+            mod.getControllerExtras().closeScreen();
         }
     }
 
@@ -88,11 +96,9 @@ public class SmeltInFurnaceTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-
-        if (obj instanceof SmeltInFurnaceTask) {
-            SmeltInFurnaceTask other = (SmeltInFurnaceTask) obj;
-            return other._doTask.isEqual(_doTask);
+    protected boolean isEqualResource(ResourceTask other) {
+        if (other instanceof SmeltInFurnaceTask task) {
+            return task._doTask.isEqual(_doTask);
         }
         return false;
     }
@@ -114,7 +120,7 @@ public class SmeltInFurnaceTask extends ResourceTask {
         private boolean _ranOutOfMaterials = false;
 
         public DoSmeltInFurnaceTask(SmeltTarget target) {
-            super(Blocks.FURNACE, "furnace");
+            super(Blocks.FURNACE, new ItemTarget("furnace"));
             _target = target;
         }
 
@@ -123,10 +129,9 @@ public class SmeltInFurnaceTask extends ResourceTask {
         }
 
         @Override
-        protected boolean isSubTaskEqual(DoStuffInContainerTask obj) {
-            if (obj instanceof DoSmeltInFurnaceTask) {
-                DoSmeltInFurnaceTask other = (DoSmeltInFurnaceTask) obj;
-                return other._target.equals(_target) && other._ignoreMaterials == _ignoreMaterials;
+        protected boolean isSubTaskEqual(DoStuffInContainerTask other) {
+            if (other instanceof DoSmeltInFurnaceTask task) {
+                return task._target.equals(_target) && task._ignoreMaterials == _ignoreMaterials;
             }
             return false;
         }
@@ -154,7 +159,7 @@ public class SmeltInFurnaceTask extends ResourceTask {
             // If materials are already in the furnace, we need less of them.
             if (!_ignoreMaterials) {
                 int materialsNeeded = _target.getMaterial().getTargetCount();
-                materialsNeeded -= mod.getInventoryTracker().getItemCountIncludingTable(_target.getItem());
+                materialsNeeded -= mod.getInventoryTracker().getItemCount(_target.getItem());
                 if (_currentFurnace != null) {
                     if (_target.getMaterial().matches(_currentFurnace.materials.getItem())) {
                         materialsNeeded -= _currentFurnace.materials.getCount();
@@ -165,7 +170,7 @@ public class SmeltInFurnaceTask extends ResourceTask {
                     materialsNeeded -= _currentFurnace.output.getCount();
                 }
                 ItemTarget neededMaterials = new ItemTarget(_target.getMaterial(), materialsNeeded);
-                if (!mod.getInventoryTracker().targetMet(neededMaterials)) {
+                if (!mod.getInventoryTracker().targetsMet(neededMaterials)) {
                     setDebugState("Collecting materials: " + neededMaterials);
                     return getMaterialTask(neededMaterials);
                 }
@@ -176,7 +181,7 @@ public class SmeltInFurnaceTask extends ResourceTask {
             // SPECIAL CASE: If we are OR WERE searching for a crafting table, we need to hide planks as a source of fuel!
             // Otherwise, planks will be protected/unprotected and fuel will be needed/not needed in an infinite back+forth.
 
-            double fuelNeeded = _target.getMaterial().getTargetCount() - mod.getInventoryTracker().getItemCountIncludingTable(_target.getItem());
+            double fuelNeeded = _target.getMaterial().getTargetCount() - mod.getInventoryTracker().getItemCount(_target.getItem());
 
             double hasFuel = mod.getInventoryTracker().getTotalFuelNormal();
 
@@ -200,12 +205,7 @@ public class SmeltInFurnaceTask extends ResourceTask {
         // Override this if our materials must be acquired in a special way.
         // virtual
         protected Task getMaterialTask(ItemTarget target) {
-            if (target.isCatalogueItem()) {
-                return TaskCatalogue.getItemTask(target.getCatalogueName(), target.getTargetCount());
-            } else {
-                Debug.logWarning("Smelt in furnace: material target is not catalogued: " + target + ". Override getMaterialTask or make sure the given material is catalogued!");
-                return null;
-            }
+            return TaskCatalogue.getItemTask(target);
         }
 
         @Override
@@ -244,11 +244,7 @@ public class SmeltInFurnaceTask extends ResourceTask {
             }
             if (toMove > 0) {
                 ItemTarget toMoveTarget = new ItemTarget(_target.getMaterial(), toMove);
-                int moved = mod.getInventoryTracker().moveItemToSlot(toMoveTarget, FurnaceSlot.INPUT_SLOT_MATERIALS);
-
-                if (moved != toMove && !_ignoreMaterials) {
-                    Debug.logWarning("Failed to move " + toMove + " materials to the furnace materials slot. Only moved " + moved + ". Will proceed anyway.");
-                }
+                return new MoveItemToSlotTask(toMoveTarget, FurnaceSlot.INPUT_SLOT_MATERIALS);
             }
 
             // Move fuel
@@ -267,23 +263,32 @@ public class SmeltInFurnaceTask extends ResourceTask {
                 if (fuelStack.getItem().equals(fuelToUse)) {
                     targetFuelItemCount -= fuelStack.getCount();
                 }
-                int moved = mod.getInventoryTracker().moveItemToSlot(fuelToUse, targetFuelItemCount, FurnaceSlot.INPUT_SLOT_FUEL);
-                int canMove = mod.getInventoryTracker().getItemCount(fuelToUse);
-                //Debug.logInternal("moved: " + moved);
-                /*if (canMove > 0 && moved != canMove) {
-                    Debug.logWarning("Failed to move " + canMove + " units of the fuel " + fuelToUse.getTranslationKey() + ". Only moved " + moved + ". Proceeding anyway.");
-                }*/
+
+                // Don't grab more than we can
+                targetFuelItemCount = Math.min(targetFuelItemCount, mod.getInventoryTracker().getItemCount(fuelToUse));
+                if (targetFuelItemCount > 0) {
+                    return new MoveItemToSlotTask(new ItemTarget(fuelToUse, targetFuelItemCount), FurnaceSlot.INPUT_SLOT_FUEL);
+                }
             }
 
             // Grab from the output slot
             ItemStack outputSlot = mod.getInventoryTracker().getItemStackInSlot(FurnaceSlot.OUTPUT_SLOT);
             if (!outputSlot.isEmpty()) {
-                if (!ResourceTask.ensureInventoryFree(mod)) {
-                    Debug.logWarning("FAILED TO FREE INVENTORY for furnace smelting. This is bad.");
-                } else {
-                    mod.getInventoryTracker().grabItem(FurnaceSlot.OUTPUT_SLOT);
-                    _smeltProgressChecker.reset();
+                if (mod.getInventoryTracker().isInventoryFull()) {
+                    return new EnsureFreeInventorySlotTask();
                 }
+                _smeltProgressChecker.reset();
+                if (!mod.getInventoryTracker().getItemStackInCursorSlot().isEmpty() && mod.getInventoryTracker().getItemStackInCursorSlot().getItem() != outputSlot.getItem()) {
+                    setDebugState("Moving cursor stack back so we can take from the output...");
+                    // Clear cursor slot first
+                    Slot freeSlot = mod.getInventoryTracker().getEmptyInventorySlot();
+                    if (freeSlot != null) {
+                        return new ClickSlotTask(freeSlot);
+                    } else {
+                        return new ThrowSlotTask();
+                    }
+                }
+                return new ClickSlotTask(FurnaceSlot.OUTPUT_SLOT, SlotActionType.QUICK_MOVE);
                 //Debug.logMessage("Should have grabbed from furnace output: " + outputSlot.getCount());
             }
 
@@ -297,7 +302,7 @@ public class SmeltInFurnaceTask extends ResourceTask {
             // If we made no progress
             if (_smeltProgressChecker.failed()) {
                 Debug.logMessage("Smelting failed, hopefully re-opening the container will fix this.");
-                mod.getPlayer().closeHandledScreen();
+                mod.getControllerExtras().closeScreen();
                 _smeltProgressChecker.reset();
             }
 

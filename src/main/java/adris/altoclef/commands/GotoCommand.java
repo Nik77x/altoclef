@@ -5,15 +5,11 @@ import adris.altoclef.commandsystem.Arg;
 import adris.altoclef.commandsystem.ArgParser;
 import adris.altoclef.commandsystem.Command;
 import adris.altoclef.commandsystem.CommandException;
-import adris.altoclef.tasks.DefaultGoToDimensionTask;
-import adris.altoclef.tasks.GetToBlockTask;
-import adris.altoclef.tasks.GetToXZTask;
+import adris.altoclef.tasks.movement.DefaultGoToDimensionTask;
+import adris.altoclef.tasks.movement.GetToBlockTask;
+import adris.altoclef.tasks.movement.GetToXZTask;
 import adris.altoclef.util.Dimension;
 import net.minecraft.util.math.BlockPos;
-
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 
 /**
  * Out of all the commands, this one probably demonstrates
@@ -40,21 +36,21 @@ public class GotoCommand extends Command {
         // Massive duct tape, if only one arg parse it as a dimension manually.
         if (parser.getArgUnits().length == expectedIndex + 1) {
             ArgParser jank = new ArgParser(new Arg(Dimension.class, "dimension"));
-            jank.LoadArgs(parser.getArgUnits()[expectedIndex], false);
-            return jank.Get(Dimension.class);
+            jank.loadArgs(parser.getArgUnits()[expectedIndex], false);
+            return jank.get(Dimension.class);
         }
         return null;
     }
 
     @Override
-    protected void Call(AltoClef mod, ArgParser parser) throws CommandException {
-        int x = parser.Get(Integer.class);
-        int y = parser.Get(Integer.class);
+    protected void call(AltoClef mod, ArgParser parser) throws CommandException {
+        int x = parser.get(Integer.class);
+        int y = parser.get(Integer.class);
         // Turbo jank duct tape below, accounting for possibility of (x z dimension)
         int z = EMPTY;
         Dimension dimension = null;
         try {
-            z = parser.Get(Integer.class);
+            z = parser.get(Integer.class);
         } catch (CommandException e) {
             // z might just be the dimension.
             if (parser.getArgUnits().length == 3) {
@@ -73,7 +69,7 @@ public class GotoCommand extends Command {
             }
         }
         if (dimension == null) {
-            dimension = parser.Get(Dimension.class);
+            dimension = parser.get(Dimension.class);
         }
         if(x == EMPTY && y == EMPTY && z == EMPTY) {
             // Require dimension as the only argument
@@ -84,12 +80,12 @@ public class GotoCommand extends Command {
                     return;
                 }
             }
-            mod.runUserTask(new DefaultGoToDimensionTask(dimension), nothing -> finish());
+            mod.runUserTask(new DefaultGoToDimensionTask(dimension), this::finish);
         } else if (y != EMPTY) {
             BlockPos target = new BlockPos(x, y, z);
-            mod.runUserTask(new GetToBlockTask(target, dimension), nothing1 -> finish());
+            mod.runUserTask(new GetToBlockTask(target, dimension), this::finish);
         } else {
-            mod.runUserTask(new GetToXZTask(x, z, dimension), nothing -> finish());
+            mod.runUserTask(new GetToXZTask(x, z, dimension), this::finish);
         }
     }
 }

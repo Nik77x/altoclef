@@ -1,8 +1,7 @@
 package adris.altoclef;
 
-import adris.altoclef.tasks.DefaultGoToDimensionTask;
+import adris.altoclef.tasks.movement.DefaultGoToDimensionTask;
 import adris.altoclef.util.KillAura;
-import adris.altoclef.util.csharpisbetter.Util;
 import adris.altoclef.util.serialization.BlockPosDeserializer;
 import adris.altoclef.util.serialization.BlockPosSerializer;
 import adris.altoclef.util.serialization.ItemDeserializer;
@@ -25,7 +24,6 @@ import net.minecraft.util.math.BlockPos;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -33,6 +31,11 @@ import java.util.List;
 @SuppressWarnings("ALL")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+/**
+ * The settings file, loaded and used across the codebase.
+ *
+ * Each setting is documented.
+ */
 public class Settings {
 
     public static final String SETTINGS_PATH = "altoclef_settings.json";
@@ -151,12 +154,14 @@ public class Settings {
     private boolean mobDefense = true;
 
     /**
-     * Defines how killaura behaves when "mobDefense" is set to true.
+     * Defines how force field behaves when "mobDefense" is set to true.
+     * Note that the force field is not here to KILL mobs, but PUSH THEM AWAY.
      * <p>
      * <p>
      * Strategies:
      * <p>
      * FASTEST: All hostiles are attacked at every possible moment, every frame.
+     * DELAY: Closest hostile is attacked with a sword when your attack is charged up
      * SMART: Closest hostile is attacked at max every 0.2 seconds.
      * OFF: Off
      */
@@ -168,6 +173,16 @@ public class Settings {
      * If enabled, will attempt to dodge all incoming projectiles
      */
     private boolean dodgeProjectiles = true;
+
+    /**
+     * If any hostile mob is "close" to our bot for this long,
+     * consider it a nuissance and defeat it if we have enough gear.
+     *
+     * Skeletons + Witches get a much larger range.
+     *
+     * Set to zero to make the bot always kill/run away from any nearby hostiles.
+     */
+    private double killAnnoyingHostileWhenCloseForSeconds = 12;
 
     /**
      * Skeletons and large groups of mobs are a huge pain.
@@ -268,16 +283,22 @@ public class Settings {
             Items.DIORITE,
             Items.ANDESITE,
             Items.GRANITE,
+            Items.TUFF,
             Items.COBBLESTONE,
             Items.DIRT,
             Items.GRAVEL,
+            Items.COBBLED_DEEPSLATE,
+            Items.ACACIA_LEAVES, Items.BIRCH_LEAVES, Items.DARK_OAK_LEAVES, Items.OAK_LEAVES, Items.JUNGLE_LEAVES, Items.SPRUCE_LEAVES,
             // Nether junk, to be fair it's mostly tuned for the "beat game" task
             Items.NETHERRACK,
             Items.MAGMA_BLOCK,
             Items.SOUL_SOIL,
             Items.SOUL_SAND,
             Items.NETHER_BRICKS,
-            Items.NETHER_BRICK
+            Items.NETHER_BRICK,
+            Items.BASALT,
+            Items.BLACKSTONE,
+            Items.END_STONE
     );
 
     /**
@@ -319,18 +340,28 @@ public class Settings {
 
     /**
      * Where "home base" is for the bot.
-     * Some settings use this value, but by default
-     * this value goes unused, so don't worry
-     * about setting this unless you need it.
+     * Some tasks use this value if you tell them to,
+     * but don't worry about changing this unless you NEED it.
      */
     private BlockPos homeBasePosition = new BlockPos(0, 64, 0);
 
     /**
      * These areas will not be mined.
-     * Used to prevent griefing
-     * or to define a "spawn protection" zone so
-     * the bot doesn't keep trying to break spawn protected
-     * blocks.
+     * Used to prevent griefing, or to define a "spawn protection" zone so
+     * the bot doesn't keep trying to break spawn protected blocks.
+     *
+     * Example: protects two areas. A "spawn" area from (x=-10 z=-10) to (x=10 z=10) and a home base at around (x = 1100, y = 2050)
+     *
+     * areasToProtect : [
+     *      {
+     *          start: "-10, 0, -10",
+     *          end: "10, 255, 10"
+     *      },
+     *      {
+     *          start: "1000, 50, 2000",
+     *          end: "1200, 255, 2100"
+     *      },
+     * ],
      */
     private List<ProtectionRange> areasToProtect = Collections.emptyList();
 
@@ -445,6 +476,10 @@ public class Settings {
         return dodgeProjectiles;
     }
 
+    public double getKillHostileWhenCloseForSeconds() {
+        return killAnnoyingHostileWhenCloseForSeconds;
+    }
+
     public boolean isAutoEat() {
         return autoEat;
     }
@@ -513,16 +548,11 @@ public class Settings {
         return entityReachRange;
     }
 
-
-
+    public Item[] getThrowawayItems(AltoClef mod, boolean includeProtected) {
+        return throwawayItems.stream().filter(item -> includeProtected || !mod.getBehaviour().isProtected(item)).toArray(Item[]::new);
+    }
     public Item[] getThrowawayItems(AltoClef mod) {
-        List<Item> result = new ArrayList<>();
-        for (Item throwawayItem : throwawayItems) {
-            if (!mod.getBehaviour().isProtected(throwawayItem)) {
-                result.add(throwawayItem);
-            }
-        }
-        return Util.toArray(Item.class, result);
+        return getThrowawayItems(mod, false);
     }
 
     public String[] getWhisperFormats() {

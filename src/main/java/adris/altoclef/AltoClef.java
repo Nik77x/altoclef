@@ -3,22 +3,26 @@ package adris.altoclef;
 import adris.altoclef.KeybindActions.KeybindingsSystem.KeyAction;
 import adris.altoclef.KeybindActions.KeybindingsSystem.KeybindingsList;
 import adris.altoclef.butler.Butler;
+import adris.altoclef.chains.*;
+import adris.altoclef.chains.FoodChain;
+import adris.altoclef.chains.MobDefenseChain;
 import adris.altoclef.commandsystem.CommandExecutor;
 import adris.altoclef.mixins.ClientConnectionAccessor;
-import adris.altoclef.tasks.misc.IdleTask;
+import adris.altoclef.tasks.movement.IdleTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.tasksystem.TaskRunner;
-import adris.altoclef.tasksystem.chains.*;
 import adris.altoclef.trackers.*;
 import adris.altoclef.ui.CommandStatusOverlay;
 import adris.altoclef.ui.MessagePriority;
 import adris.altoclef.ui.MessageSender;
 import adris.altoclef.util.Dimension;
 import adris.altoclef.util.InputControls;
-import adris.altoclef.util.PlayerExtraController;
-import adris.altoclef.util.WorldUtil;
+import adris.altoclef.util.control.BotBehaviour;
+import adris.altoclef.util.control.PlayerExtraController;
+import adris.altoclef.util.control.SlotHandler;
 import adris.altoclef.util.csharpisbetter.Action;
 import adris.altoclef.util.csharpisbetter.ActionListener;
+import adris.altoclef.util.helpers.WorldHelper;
 import baritone.Baritone;
 import baritone.altoclef.AltoClefSettings;
 import baritone.api.BaritoneAPI;
@@ -47,7 +51,9 @@ import net.minecraft.world.chunk.WorldChunk;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.ArrayDeque;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.function.Consumer;
 
 import org.lwjgl.glfw.GLFW;
@@ -55,15 +61,14 @@ import org.lwjgl.glfw.GLFW;
 public class AltoClef implements ModInitializer {
 
     // Static access to altoclef
-    public static final Action<AltoClef> onInitialize = new Action<>();
-    public static final Action<AltoClef> onPostTick = new Action<>();
+    private static final Queue<Consumer<AltoClef>> _postInitQueue = new ArrayDeque<>();
 
     public final Action<String> onGameMessage = new Action<>();
     public final Action<String> onGameOverlayMessage = new Action<>();
     // I forget why this is here somebody help
     private final Action<WorldChunk> _onChunkLoad = new Action<>();
     // Central Managers
-    private CommandExecutor _commandExecutor;
+    private static CommandExecutor _commandExecutor;
     private TaskRunner _taskRunner;
     private TrackerManager _trackerManager;
     private BotBehaviour _botBehaviour;
@@ -87,6 +92,7 @@ public class AltoClef implements ModInitializer {
     // Misc managers/input
     private MessageSender _messageSender;
     private InputControls _inputControls;
+    private SlotHandler _slotHandler;
     // Butler
     private Butler _butler;
 
@@ -159,6 +165,7 @@ public class AltoClef implements ModInitializer {
         // Misc managers
         _messageSender = new MessageSender();
         _inputControls = new InputControls();
+        _slotHandler = new SlotHandler(this);
 
         _butler = new Butler(this);
 
@@ -166,9 +173,8 @@ public class AltoClef implements ModInitializer {
 
         // Misc wiring
         // When we place a block and might be tracking it, make the change immediate.
-        _extraController.onBlockPlaced.addListener(new ActionListener<>(value -> {
-            _blockTracker.addBlock(value.blockState.getBlock(), value.blockPos);
-        }));
+        _extraController.onBlockPlaced.addListener(new ActionListener<>(value ->
+                _blockTracker.addBlock(value.blockState.getBlock(), value.blockPos)));
 
 
         initializeCommands();
@@ -177,14 +183,15 @@ public class AltoClef implements ModInitializer {
 
 
         Playground.IDLE_TEST_INIT_FUNCTION(this);
-
-        onInitialize.invoke(this);
+        runEnqueuedPostInits();
     }
 
 
 
     // Client tick
     public void onClientTick() {
+        runEnqueuedPostInits();
+
         _inputControls.onTickPre();
 
         // TODO: should this go here?
@@ -198,8 +205,6 @@ public class AltoClef implements ModInitializer {
         _messageSender.tick();
 
         _inputControls.onTickPost();
-
-        onPostTick.invoke(this);
     }
 
     public void onClientRenderOverlay(MatrixStack matrixStack) {
@@ -256,9 +261,8 @@ public class AltoClef implements ModInitializer {
     private void initializeCommands() {
         try {
             // This creates the commands. If you want any more commands feel free to initialize new command lists.
-            new AltoClefCommands(getCommandExecutor());
+            new AltoClefCommands();
         } catch (Exception e) {
-            /// ppppbbbbttt
             e.printStackTrace();
         }
     }
@@ -296,7 +300,7 @@ public class AltoClef implements ModInitializer {
 
 
     // Main handlers access
-    public CommandExecutor getCommandExecutor() {
+    public static CommandExecutor getCommandExecutor() {
         return _commandExecutor;
     }
 
@@ -340,7 +344,7 @@ public class AltoClef implements ModInitializer {
     // Baritone access
     public Baritone getClientBaritone() {
         if (getPlayer() == null) {
-            return null;
+            return (Baritone) BaritoneAPI.getProvider().getPrimaryBaritone();
         }
         return (Baritone) BaritoneAPI.getProvider().getBaritoneForPlayer(getPlayer());
     }
@@ -359,6 +363,7 @@ public class AltoClef implements ModInitializer {
 
     public adris.altoclef.Settings reloadModSettings() {
         adris.altoclef.Settings result = adris.altoclef.Settings.load();
+        //noinspection ConstantConditions
         if (result != null) {
             _settings = result;
         }
@@ -376,6 +381,10 @@ public class AltoClef implements ModInitializer {
 
     public MessageSender getMessageSender() {
         return _messageSender;
+    }
+
+    public SlotHandler getSlotHandler() {
+        return _slotHandler;
     }
 
     // Minecraft access
@@ -401,14 +410,13 @@ public class AltoClef implements ModInitializer {
 
     // Extra control
     public void runUserTask(Task task) {
-        runUserTask(task, (nothing) -> {
-        });
+        runUserTask(task, () -> { });
     }
 
 
 
     @SuppressWarnings("rawtypes")
-    public void runUserTask(Task task, Consumer onFinish) {
+    public void runUserTask(Task task, Runnable onFinish) {
         _userTaskChain.runTask(this, task, onFinish);
     }
 
@@ -438,7 +446,7 @@ public class AltoClef implements ModInitializer {
         return Dimension.END;
     }
     public Vec3d getOverworldPosition() {
-        return WorldUtil.getOverworldPosition(this, getPlayer().getPos());
+        return WorldHelper.getOverworldPosition(this, getPlayer().getPos());
     }
 
     public void log(String message) {
@@ -463,5 +471,16 @@ public class AltoClef implements ModInitializer {
         return _onChunkLoad;
     }
 
-
+    private void runEnqueuedPostInits() {
+        synchronized (_postInitQueue) {
+            while (!_postInitQueue.isEmpty()) {
+                _postInitQueue.poll().accept(this);
+            }
+        }
+    }
+    public static void subscribeToPostInit(Consumer<AltoClef> onPostInit) {
+        synchronized (_postInitQueue) {
+            _postInitQueue.add(onPostInit);
+        }
+    }
 }

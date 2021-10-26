@@ -6,11 +6,11 @@ import adris.altoclef.TaskCatalogue;
 import adris.altoclef.tasks.InteractWithBlockTask;
 import adris.altoclef.tasks.construction.DestroyBlockTask;
 import adris.altoclef.tasks.construction.PlaceBlockTask;
-import adris.altoclef.tasks.misc.TimeoutWanderTask;
+import adris.altoclef.tasks.movement.TimeoutWanderTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.ItemTarget;
-import adris.altoclef.util.WorldUtil;
 import adris.altoclef.util.csharpisbetter.TimerGame;
+import adris.altoclef.util.helpers.WorldHelper;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
@@ -19,6 +19,9 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3i;
 
+/**
+ * Build a nether portal with obsidian blocks.
+ */
 public class ConstructNetherPortalObsidianTask extends Task {
 
     // There's some code duplication between here and ConstructNetherPortalBucketTask...
@@ -63,9 +66,9 @@ public class ConstructNetherPortalObsidianTask extends Task {
 
     private static BlockPos getBuildableAreaNearby(AltoClef mod) {
         BlockPos checkOrigin = mod.getPlayer().getBlockPos();
-        for (BlockPos toCheck : WorldUtil.scanRegion(mod, checkOrigin, checkOrigin.add(PORTALABLE_REGION_SIZE))) {
+        for (BlockPos toCheck : WorldHelper.scanRegion(mod, checkOrigin, checkOrigin.add(PORTALABLE_REGION_SIZE))) {
             BlockState state = MinecraftClient.getInstance().world.getBlockState(toCheck);
-            boolean validToWorld = (WorldUtil.canPlace(mod, toCheck) || WorldUtil.canBreak(mod, toCheck));
+            boolean validToWorld = (WorldHelper.canPlace(mod, toCheck) || WorldHelper.canBreak(mod, toCheck));
             if (!validToWorld || state.getBlock() == Blocks.LAVA || state.getBlock() == Blocks.WATER || state.getBlock() == Blocks.BEDROCK) {
                 return null;
             }
@@ -112,7 +115,7 @@ public class ConstructNetherPortalObsidianTask extends Task {
         // Get obsidian if we don't have.
         if (mod.getInventoryTracker().getItemCount(Items.OBSIDIAN) < neededObsidian) {
             setDebugState("Getting obsidian");
-            return TaskCatalogue.getItemTask("obsidian", neededObsidian);
+            return TaskCatalogue.getItemTask(Items.OBSIDIAN, neededObsidian);
         }
 
         // Find spot
@@ -129,7 +132,7 @@ public class ConstructNetherPortalObsidianTask extends Task {
         // Get flint and steel
         if (!mod.getInventoryTracker().hasItem(Items.FLINT_AND_STEEL)) {
             setDebugState("Getting flint and steel");
-            return TaskCatalogue.getItemTask("flint_and_steel", 1);
+            return TaskCatalogue.getItemTask(Items.FLINT_AND_STEEL, 1);
         }
 
         // Place frame
@@ -139,19 +142,19 @@ public class ConstructNetherPortalObsidianTask extends Task {
         }
 
         // Clear middle
-        if (_destroyTarget != null && !WorldUtil.isAir(mod, _destroyTarget)) {
+        if (_destroyTarget != null && !WorldHelper.isAir(mod, _destroyTarget)) {
             return new DestroyBlockTask(_destroyTarget);
         }
         for (Vec3i middleOffs : PORTAL_INTERIOR) {
             BlockPos middlePos = _origin.add(middleOffs);
-            if (!WorldUtil.isAir(mod, middlePos)) {
+            if (!WorldHelper.isAir(mod, middlePos)) {
                 _destroyTarget = middlePos;
                 return new DestroyBlockTask(_destroyTarget);
             }
         }
 
         // Flint and steel
-        return new InteractWithBlockTask(new ItemTarget("flint_and_steel", 1), Direction.UP, _origin.down(), true);
+        return new InteractWithBlockTask(new ItemTarget(Items.FLINT_AND_STEEL, 1), Direction.UP, _origin.down(), true);
     }
 
     @Override
@@ -160,8 +163,8 @@ public class ConstructNetherPortalObsidianTask extends Task {
     }
 
     @Override
-    protected boolean isEqual(Task obj) {
-        return obj instanceof ConstructNetherPortalObsidianTask;
+    protected boolean isEqual(Task other) {
+        return other instanceof ConstructNetherPortalObsidianTask;
     }
 
     @Override

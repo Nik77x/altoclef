@@ -1,7 +1,6 @@
 package adris.altoclef.tasks.resources;
 
 import adris.altoclef.AltoClef;
-import adris.altoclef.tasks.MineAndCollectTask;
 import adris.altoclef.tasks.ResourceTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.MiningRequirement;
@@ -44,8 +43,8 @@ public class CollectWheatSeedsTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        return obj instanceof CollectWheatSeedsTask;
+    protected boolean isEqualResource(ResourceTask other) {
+        return other instanceof CollectWheatSeedsTask;
     }
 
     @Override

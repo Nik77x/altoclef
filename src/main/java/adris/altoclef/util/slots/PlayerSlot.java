@@ -53,6 +53,9 @@ public class PlayerSlot extends Slot {
         }
         return null;
     }
+    public static Slot getEquipSlot() {
+        return getEquipSlot(EquipmentSlot.MAINHAND);
+    }
 
     @Override
     public int inventorySlotToWindowSlot(int inventorySlot) {
@@ -68,22 +71,6 @@ public class PlayerSlot extends Slot {
             return windowSlot - 36;
         }
         return windowSlot;
-    }
-
-    @Override
-    public void ensureWindowOpened() {
-        //Debug.logMessage("PLAYER INVENTORY OPENED");
-
-
-        //ClientPlayerInteractionManager controller = MinecraftClient.getInstance().interactionManager;
-
-        //MinecraftClient.getInstance().openScreen(new InventoryScreen(MinecraftClient.getInstance().player));
-
-        //controller.clickButton();
-
-        // Nope. Maybe you gotta send packets?
-        //player.inventory.onOpen(player);
-
     }
 
     @Override

@@ -1,9 +1,9 @@
 package adris.altoclef.tasks.resources;
 
 import adris.altoclef.AltoClef;
-import adris.altoclef.tasks.KillEntitiesTask;
 import adris.altoclef.tasks.ResourceTask;
-import adris.altoclef.tasks.misc.TimeoutWanderTask;
+import adris.altoclef.tasks.entity.KillEntitiesTask;
+import adris.altoclef.tasks.movement.TimeoutWanderTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.ItemTarget;
 import net.minecraft.entity.Entity;
@@ -16,10 +16,10 @@ public class KillAndLootTask extends ResourceTask {
 
     private final Task _killTask;
 
-    public KillAndLootTask(Class toKill, Predicate<Entity> ignorePredicate, ItemTarget... itemTargets) {
+    public KillAndLootTask(Class toKill, Predicate<Entity> shouldKill, ItemTarget... itemTargets) {
         super(itemTargets.clone());
         _toKill = toKill;
-        _killTask = new KillEntitiesTask(ignorePredicate, _toKill);
+        _killTask = new KillEntitiesTask(shouldKill, _toKill);
     }
 
     public KillAndLootTask(Class toKill, ItemTarget... itemTargets) {
@@ -58,9 +58,8 @@ public class KillAndLootTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        if (obj instanceof KillAndLootTask) {
-            KillAndLootTask task = (KillAndLootTask) obj;
+    protected boolean isEqualResource(ResourceTask other) {
+        if (other instanceof KillAndLootTask task) {
             return task._toKill.equals(_toKill);
         }
         return false;

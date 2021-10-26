@@ -2,23 +2,26 @@ package adris.altoclef.tasks;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.Debug;
+import adris.altoclef.tasks.resources.CollectRecipeCataloguedResourcesTask;
+import adris.altoclef.tasks.slot.EnsureFreeInventorySlotTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.CraftingRecipe;
 import adris.altoclef.util.ItemTarget;
-import adris.altoclef.util.ItemUtil;
 import adris.altoclef.util.RecipeTarget;
 import adris.altoclef.util.csharpisbetter.TimerGame;
-import adris.altoclef.util.csharpisbetter.Util;
-import adris.altoclef.util.slots.Slot;
+import adris.altoclef.util.helpers.ItemHelper;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.screen.CraftingScreenHandler;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-
+/**
+ * Crafts an item in a crafting table, obtaining and placing the table down if none was found.
+ */
 public class CraftInTableTask extends ResourceTask {
 
     private final RecipeTarget[] _targets;
@@ -41,10 +44,6 @@ public class CraftInTableTask extends ResourceTask {
         this(target, recipe, true, false);
     }
 
-    public CraftInTableTask(Item[] items, int count, CraftingRecipe recipe) {
-        this(new ItemTarget(items, count), recipe);
-    }
-
     public CraftInTableTask(Item item, int count, CraftingRecipe recipe) {
         this(new ItemTarget(item, count), recipe);
     }
@@ -54,7 +53,7 @@ public class CraftInTableTask extends ResourceTask {
         for (RecipeTarget target : recipeTargets) {
             result.add(target.getItem());
         }
-        return Util.toArray(ItemTarget.class, result);
+        return result.toArray(ItemTarget[]::new);
     }
 
     @Override
@@ -76,16 +75,15 @@ public class CraftInTableTask extends ResourceTask {
     protected void onResourceStop(AltoClef mod, Task interruptTask) {
         // Close the crafting table screen
         if (mod.getPlayer() != null) {
-            mod.getPlayer().closeHandledScreen();
+            mod.getControllerExtras().closeScreen();
         }
         //mod.getControllerExtras().closeCurrentContainer();
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        if (obj instanceof CraftInTableTask) {
-            CraftInTableTask other = (CraftInTableTask) obj;
-            return _craftTask.isEqual(other._craftTask);
+    protected boolean isEqualResource(ResourceTask other) {
+        if (other instanceof CraftInTableTask task) {
+            return _craftTask.isEqual(task._craftTask);
         }
         return false;
     }
@@ -103,17 +101,18 @@ public class CraftInTableTask extends ResourceTask {
 
 class DoCraftInTableTask extends DoStuffInContainerTask {
 
+    private final float CRAFT_RESET_TIMER_BONUS_SECONDS = 10;
+
     private final RecipeTarget[] _targets;
 
     private final boolean _collect;
 
     private final CollectRecipeCataloguedResourcesTask _collectTask;
-    private final TimerGame _craftResetTimer = new TimerGame(10);
-    private boolean _fullCheckFailed = false;
+    private final TimerGame _craftResetTimer = new TimerGame(CRAFT_RESET_TIMER_BONUS_SECONDS);
     private int _craftCount;
 
     public DoCraftInTableTask(RecipeTarget[] targets, boolean collect, boolean ignoreUncataloguedSlots) {
-        super(Blocks.CRAFTING_TABLE, "crafting_table");
+        super(Blocks.CRAFTING_TABLE, new ItemTarget("crafting_table"));
         _collectTask = new CollectRecipeCataloguedResourcesTask(ignoreUncataloguedSlots, targets);
         _targets = targets;
         _collect = collect;
@@ -127,10 +126,9 @@ class DoCraftInTableTask extends DoStuffInContainerTask {
     protected void onStart(AltoClef mod) {
         super.onStart(mod);
         _craftCount = 0;
-        mod.getPlayer().closeHandledScreen();
+        mod.getControllerExtras().closeScreen();
         mod.getBehaviour().push();
         mod.getBehaviour().addProtectedItems(getMaterialsArray());
-        _fullCheckFailed = false;
 
         // Reset our "finished" value in the collect recipe thing.
         _collectTask.reset();
@@ -141,7 +139,7 @@ class DoCraftInTableTask extends DoStuffInContainerTask {
         super.onStop(mod, interruptTask);
         mod.getBehaviour().pop();
         if (AltoClef.inGame()) {
-            mod.getPlayer().closeHandledScreen();
+            mod.getControllerExtras().closeScreen();
         }
     }
 
@@ -163,7 +161,7 @@ class DoCraftInTableTask extends DoStuffInContainerTask {
             if (!_collectTask.isFinished(mod)) {
 
                 if (!mod.getInventoryTracker().hasRecipeMaterialsOrTarget(_targets)) {
-                    setDebugState("craft does NOT have RECIPE MATERIALS: " + Util.arrayToString(_targets));
+                    setDebugState("craft does NOT have RECIPE MATERIALS: " + Arrays.toString(_targets));
                     return _collectTask;
                 }
             }
@@ -177,11 +175,9 @@ class DoCraftInTableTask extends DoStuffInContainerTask {
     }
 
     @Override
-    protected boolean isSubTaskEqual(DoStuffInContainerTask obj) {
-        if (obj instanceof DoCraftInTableTask) {
-            DoCraftInTableTask other = (DoCraftInTableTask) obj;
-
-            return Util.arraysEqual(other._targets, _targets);
+    protected boolean isSubTaskEqual(DoStuffInContainerTask other) {
+        if (other instanceof DoCraftInTableTask task) {
+            return Arrays.equals(task._targets, _targets);
         }
         return false;
     }
@@ -195,41 +191,21 @@ class DoCraftInTableTask extends DoStuffInContainerTask {
     protected Task containerSubTask(AltoClef mod) {
         //Debug.logMessage("GOT TO TABLE. Crafting...");
 
-        // Already handled above...
-        /*
-        if (_collect) {
-            for (RecipeTarget target : _targets) {
-                if (!mod.getInventoryTracker().hasRecipeMaterialsOrTarget(target)) {
-                    // Collect recipe materials
-                    setDebugState("Collecting materials");
-                    return new CollectRecipeCataloguedResourcesTask(_targets);
-                }
-            }
-        }
-         */
-
+        _craftResetTimer.setInterval(mod.getModSettings().getContainerItemMoveDelay() * 10 + CRAFT_RESET_TIMER_BONUS_SECONDS);
         if (_craftResetTimer.elapsed()) {
             Debug.logMessage("Refreshing crafting table.");
-            mod.getPlayer().closeHandledScreen();
+            mod.getControllerExtras().closeScreen();
             return null;
         }
 
-
         for (RecipeTarget target : _targets) {
-            if (!mod.getInventoryTracker().targetMet(target.getItem())) {
-                // Free up inventory
-                if (!mod.getInventoryTracker().ensureFreeInventorySlot()) {
-                    if (!_fullCheckFailed) {
-                        Debug.logWarning("Failed to free up inventory as no throwaway-able slot was found. Awaiting user input.");
-                    }
-                    _fullCheckFailed = true;
-                }
-
-
-                //Debug.logMessage("Crafting: " + target.getRecipe());
-                return new CraftGenericTask(target.getRecipe());
-                //craftInstant(mod, target.getRecipe());
+            if (mod.getInventoryTracker().targetsMet(target.getItem())) continue;
+            if (mod.getInventoryTracker().isInventoryFull()) {
+                setDebugState("Freeing inventory before crafting...");
+                return new EnsureFreeInventorySlotTask();
             }
+            setDebugState("Crafting");
+            return new CraftGenericTask(target.getRecipe());
         }
 
         return null;
@@ -243,9 +219,9 @@ class DoCraftInTableTask extends DoStuffInContainerTask {
     @Override
     protected double getCostToMakeNew(AltoClef mod) {
         // TODO: If we have an axe, lower the cost.
-        if (mod.getInventoryTracker().hasItem(ItemUtil.LOG) || mod.getInventoryTracker().getItemCount(ItemUtil.PLANKS) >= 4) {
+        if (mod.getInventoryTracker().hasItem(ItemHelper.LOG) || mod.getInventoryTracker().getItemCount(ItemHelper.PLANKS) >= 4) {
             // We can craft it right now, so it's real cheap
-            return 150;
+            return 15;
         }
         // TODO: If cached and the closest log is really far away, strike the price UP
         return 300;
@@ -260,9 +236,8 @@ class DoCraftInTableTask extends DoStuffInContainerTask {
                 Collections.addAll(result, materialTarget.getMatches());
             }
         }
-        Item[] returnthing = new Item[result.size()];
-        result.toArray(returnthing);
-        return returnthing;
+
+        return result.toArray(Item[]::new);
     }
 
 }

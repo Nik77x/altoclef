@@ -1,9 +1,8 @@
 package adris.altoclef.tasks.resources;
 
 import adris.altoclef.AltoClef;
-import adris.altoclef.tasks.DefaultGoToDimensionTask;
-import adris.altoclef.tasks.MineAndCollectTask;
 import adris.altoclef.tasks.ResourceTask;
+import adris.altoclef.tasks.movement.DefaultGoToDimensionTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.Dimension;
 import adris.altoclef.util.ItemTarget;
@@ -39,7 +38,7 @@ public class CollectQuartzTask extends ResourceTask {
         }
 
         setDebugState("Mining");
-        return new MineAndCollectTask(new ItemTarget("quartz", _count), new Block[]{Blocks.NETHER_QUARTZ_ORE}, MiningRequirement.WOOD);
+        return new MineAndCollectTask(new ItemTarget(Items.QUARTZ, _count), new Block[]{Blocks.NETHER_QUARTZ_ORE}, MiningRequirement.WOOD);
     }
 
     @Override
@@ -48,8 +47,8 @@ public class CollectQuartzTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        return obj instanceof CollectQuartzTask;
+    protected boolean isEqualResource(ResourceTask other) {
+        return other instanceof CollectQuartzTask;
     }
 
     @Override

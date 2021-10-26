@@ -3,14 +3,14 @@ package adris.altoclef.tasks.resources;
 import adris.altoclef.AltoClef;
 import adris.altoclef.TaskCatalogue;
 import adris.altoclef.tasks.CraftInInventoryTask;
-import adris.altoclef.tasks.DefaultGoToDimensionTask;
-import adris.altoclef.tasks.MineAndCollectTask;
 import adris.altoclef.tasks.ResourceTask;
+import adris.altoclef.tasks.movement.DefaultGoToDimensionTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.CraftingRecipe;
 import adris.altoclef.util.Dimension;
 import adris.altoclef.util.ItemTarget;
 import adris.altoclef.util.MiningRequirement;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.Items;
@@ -46,10 +46,10 @@ public class CollectGoldNuggetsTask extends ResourceTask {
                 }
                 // Get gold ingots
                 int nuggiesStillNeeded = _count - potentialNuggies;
-                return TaskCatalogue.getItemTask("gold_ingot", (int) Math.ceil((double) nuggiesStillNeeded / 9.0));
+                return TaskCatalogue.getItemTask(Items.GOLD_INGOT, (int) Math.ceil((double) nuggiesStillNeeded / 9.0));
             case NETHER:
                 setDebugState("Mining nuggies");
-                return new MineAndCollectTask(Items.GOLD_NUGGET, _count, new Block[]{Blocks.NETHER_GOLD_ORE}, MiningRequirement.WOOD);
+                return new MineAndCollectTask(Items.GOLD_NUGGET, _count, new Block[]{Blocks.NETHER_GOLD_ORE, Blocks.GILDED_BLACKSTONE},MiningRequirement.WOOD);
             case END:
                 setDebugState("Going to overworld");
                 return new DefaultGoToDimensionTask(Dimension.OVERWORLD);
@@ -65,8 +65,8 @@ public class CollectGoldNuggetsTask extends ResourceTask {
     }
 
     @Override
-    protected boolean isEqualResource(ResourceTask obj) {
-        return obj instanceof CollectGoldNuggetsTask;
+    protected boolean isEqualResource(ResourceTask other) {
+        return other instanceof CollectGoldNuggetsTask;
     }
 
     @Override

@@ -2,7 +2,7 @@ package adris.altoclef.trackers;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.util.Dimension;
-import adris.altoclef.util.WorldUtil;
+import adris.altoclef.util.helpers.WorldHelper;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.util.math.BlockPos;
@@ -11,7 +11,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Sometimes we want very specific things, I don't want to pollute other trackers to add these.
+ * Sometimes we want to track specific block related things, like the last nether portal we used.
+ * I don't want to pollute other trackers to add these.
  */
 public class MiscBlockTracker {
 
@@ -25,7 +26,7 @@ public class MiscBlockTracker {
 
     public void tick() {
         if (AltoClef.inGame()) {
-            for (BlockPos check : WorldUtil.scanRegion(_mod, _mod.getPlayer().getBlockPos().add(-1, -1, -1), _mod.getPlayer().getBlockPos().add(1, 1, 1))) {
+            for (BlockPos check : WorldHelper.scanRegion(_mod, _mod.getPlayer().getBlockPos().add(-1, -1, -1), _mod.getPlayer().getBlockPos().add(1, 1, 1))) {
                 Block currentBlock = _mod.getWorld().getBlockState(check).getBlock();
                 if (currentBlock == Blocks.NETHER_PORTAL) {
                     // Make sure we get the lowest nether portal, as we can only really enter from the bottom.
@@ -37,7 +38,7 @@ public class MiscBlockTracker {
                         }
                     }
                     BlockPos below = check.down();
-                    if (WorldUtil.isSolid(_mod, below)) {
+                    if (WorldHelper.isSolid(_mod, below)) {
                         _lastNetherPortal.put(_mod.getCurrentDimension(), check);
                     }
                     break;

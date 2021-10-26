@@ -2,17 +2,20 @@ package adris.altoclef.tasks.construction;
 
 import adris.altoclef.AltoClef;
 import adris.altoclef.TaskCatalogue;
-import adris.altoclef.tasks.GetToBlockTask;
 import adris.altoclef.tasks.InteractWithBlockTask;
+import adris.altoclef.tasks.movement.GetToBlockTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.ItemTarget;
-import adris.altoclef.util.WorldUtil;
+import adris.altoclef.util.helpers.WorldHelper;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.Items;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3i;
 
+/**
+ * Places obsidian at a position using buckets and a cast.
+ */
 public class PlaceObsidianBucketTask extends Task {
 
     public static final Vec3i[] CAST_FRAME = new Vec3i[]{
@@ -64,19 +67,19 @@ public class PlaceObsidianBucketTask extends Task {
         if (!mod.getInventoryTracker().hasItem(Items.LAVA_BUCKET)) {
             // The only excuse is that we have lava at our position.
             if (!mod.getBlockTracker().blockIsValid(_pos, Blocks.LAVA)) {
-                return TaskCatalogue.getItemTask("lava_bucket", 1);
+                return TaskCatalogue.getItemTask(Items.LAVA_BUCKET, 1);
             }
         }
 
         if (_currentCastTarget != null) {
-            if (WorldUtil.isSolid(mod, _currentCastTarget)) {
+            if (WorldHelper.isSolid(mod, _currentCastTarget)) {
                 _currentCastTarget = null;
             } else {
                 return new PlaceStructureBlockTask(_currentCastTarget);
             }
         }
         if (_currentDestroyTarget != null) {
-            if (!WorldUtil.isSolid(mod, _currentDestroyTarget)) {
+            if (!WorldHelper.isSolid(mod, _currentDestroyTarget)) {
                 _currentDestroyTarget = null;
             } else {
                 return new DestroyBlockTask(_currentDestroyTarget);
@@ -84,13 +87,13 @@ public class PlaceObsidianBucketTask extends Task {
         }
 
         // Build the cast frame
-        if (_currentCastTarget != null && WorldUtil.isSolid(mod, _currentCastTarget)) {
+        if (_currentCastTarget != null && WorldHelper.isSolid(mod, _currentCastTarget)) {
             // Current cast frame already built.
             _currentCastTarget = null;
         }
         for (Vec3i castPosRelative : CAST_FRAME) {
             BlockPos castPos = _pos.add(castPosRelative);
-            if (!WorldUtil.isSolid(mod, castPos)) {
+            if (!WorldHelper.isSolid(mod, castPos)) {
                 _currentCastTarget = castPos;
                 return null;
             }
@@ -99,19 +102,19 @@ public class PlaceObsidianBucketTask extends Task {
         // Cast frame built. Now, place lava.
         if (mod.getWorld().getBlockState(_pos).getBlock() != Blocks.LAVA) {
 
-            if (WorldUtil.isSolid(mod, _pos)) {
+            if (WorldHelper.isSolid(mod, _pos)) {
                 setDebugState("Clearing space around lava");
                 _currentDestroyTarget = _pos;
                 return null;
                 //return new DestroyBlockTask(framePos);
             }
             // Clear the upper two as well, to make placing more reliable.
-            if (WorldUtil.isSolid(mod, _pos.up())) {
+            if (WorldHelper.isSolid(mod, _pos.up())) {
                 setDebugState("Clearing space around lava");
                 _currentDestroyTarget = _pos.up();
                 return null;
             }
-            if (WorldUtil.isSolid(mod, _pos.up(2))) {
+            if (WorldHelper.isSolid(mod, _pos.up(2))) {
                 setDebugState("Clearing space around lava");
                 _currentDestroyTarget = _pos.up(2);
                 return null;
@@ -119,7 +122,7 @@ public class PlaceObsidianBucketTask extends Task {
 
             // Make sure we have water, juuust in case we have another creeper appear run end here
             if (!mod.getInventoryTracker().hasItem(Items.WATER_BUCKET)) {
-                return TaskCatalogue.getItemTask("water_bucket", 1);
+                return TaskCatalogue.getItemTask(Items.WATER_BUCKET, 1);
             }
 
             // Don't place lava at our position!
@@ -132,20 +135,20 @@ public class PlaceObsidianBucketTask extends Task {
 
             setDebugState("Placing lava for cast");
 
-            return new InteractWithBlockTask(new ItemTarget("lava_bucket", 1), Direction.WEST, _pos.add(1, 0, 0), false);
+            return new InteractWithBlockTask(new ItemTarget(Items.LAVA_BUCKET, 1), Direction.WEST, _pos.add(1, 0, 0), false);
         }
         // Lava placed, Now, place water.
         BlockPos waterCheck = _pos.up();
         if (mod.getWorld().getBlockState(waterCheck).getBlock() != Blocks.WATER) {
             setDebugState("Placing water for cast");
 
-            if (WorldUtil.isSolid(mod, waterCheck)) {
+            if (WorldHelper.isSolid(mod, waterCheck)) {
                 _currentDestroyTarget = waterCheck;
                 return null;
                 //return new DestroyBlockTask(waterCheck);
 
             }
-            if (WorldUtil.isSolid(mod, waterCheck.up())) {
+            if (WorldHelper.isSolid(mod, waterCheck.up())) {
                 _currentDestroyTarget = waterCheck.up();
                 return null;
                 //return new DestroyBlockTask(waterCheck.up());
@@ -158,7 +161,7 @@ public class PlaceObsidianBucketTask extends Task {
                 return new GetToBlockTask(targetPos, false);
             }
 
-            return new InteractWithBlockTask(new ItemTarget("water_bucket", 1), Direction.WEST, _pos.add(1, 1, 0), true);
+            return new InteractWithBlockTask(new ItemTarget(Items.WATER_BUCKET, 1), Direction.WEST, _pos.add(1, 1, 0), true);
         }
         return null;
     }
@@ -174,9 +177,9 @@ public class PlaceObsidianBucketTask extends Task {
     }
 
     @Override
-    protected boolean isEqual(Task obj) {
-        if (obj instanceof PlaceObsidianBucketTask) {
-            return ((PlaceObsidianBucketTask)obj)._pos.equals(_pos);
+    protected boolean isEqual(Task other) {
+        if (other instanceof PlaceObsidianBucketTask task) {
+            return task._pos.equals(_pos);
         }
         return false;
     }

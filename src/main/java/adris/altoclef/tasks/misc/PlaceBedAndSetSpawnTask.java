@@ -3,18 +3,22 @@ package adris.altoclef.tasks.misc;
 import adris.altoclef.AltoClef;
 import adris.altoclef.Debug;
 import adris.altoclef.TaskCatalogue;
-import adris.altoclef.tasks.DefaultGoToDimensionTask;
 import adris.altoclef.tasks.DoToClosestBlockTask;
-import adris.altoclef.tasks.GetToBlockTask;
 import adris.altoclef.tasks.InteractWithBlockTask;
 import adris.altoclef.tasks.construction.DestroyBlockTask;
 import adris.altoclef.tasks.construction.PlaceStructureBlockTask;
+import adris.altoclef.tasks.movement.DefaultGoToDimensionTask;
+import adris.altoclef.tasks.movement.GetToBlockTask;
+import adris.altoclef.tasks.movement.TimeoutWanderTask;
 import adris.altoclef.tasks.resources.CollectBedTask;
 import adris.altoclef.tasksystem.Task;
-import adris.altoclef.util.*;
+import adris.altoclef.util.Dimension;
+import adris.altoclef.util.ItemTarget;
 import adris.altoclef.util.csharpisbetter.ActionListener;
 import adris.altoclef.util.csharpisbetter.TimerGame;
-import adris.altoclef.util.csharpisbetter.Util;
+import adris.altoclef.util.helpers.ItemHelper;
+import adris.altoclef.util.helpers.LookHelper;
+import adris.altoclef.util.helpers.WorldHelper;
 import adris.altoclef.util.progresscheck.MovementProgressChecker;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.Block;
@@ -27,6 +31,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
+import org.apache.commons.lang3.ArrayUtils;
 
 public class PlaceBedAndSetSpawnTask extends Task {
 
@@ -58,7 +63,7 @@ public class PlaceBedAndSetSpawnTask extends Task {
         }
     });
     private boolean _sleepAttemptMade;
-    private final ActionListener<String> onOverlayMessage = new ActionListener<String>(value -> {
+    private final ActionListener<String> onOverlayMessage = new ActionListener<>(value -> {
         final String[] NEUTRAL_MESSAGES = new String[]{"You can sleep only at night", "You can only sleep at night", "You may not rest now; there are monsters nearby"};
         for (String checkMessage : NEUTRAL_MESSAGES) {
             if (value.contains(checkMessage)) {
@@ -157,18 +162,18 @@ public class PlaceBedAndSetSpawnTask extends Task {
         if (mod.getBlockTracker().anyFound(BEDS)) {
             // Sleep in the nearest bed
             setDebugState("Going to bed to sleep...");
-            return new DoToClosestBlockTask(() -> mod.getPlayer().getPos(), toSleepIn -> {
+            return new DoToClosestBlockTask(toSleepIn -> {
                 boolean closeEnough = toSleepIn.isWithinDistance(mod.getPlayer().getPos(), 3);
                 if (closeEnough) {
                     // why 0.2? I'm tired.
                     Vec3d centerBed = new Vec3d(toSleepIn.getX() + 0.5, toSleepIn.getY() + 0.2, toSleepIn.getZ() + 0.5);
-                    BlockHitResult hit = LookUtil.raycast(mod.getPlayer(), centerBed, 6);
+                    BlockHitResult hit = LookHelper.raycast(mod.getPlayer(), centerBed, 6);
                     // TODO: Kinda ugly, but I'm tired and fixing for the 2nd attempt speedrun so I will fix this block later
                     closeEnough = false;
                     if (hit.getType() != HitResult.Type.MISS) {
                         // At this point, if we miss, we probably are close enough.
                         BlockPos p = hit.getBlockPos();
-                        if (Util.arrayContains(Util.itemsToBlocks(ItemUtil.BED), mod.getWorld().getBlockState(p).getBlock())) {
+                        if (ArrayUtils.contains(ItemHelper.itemsToBlocks(ItemHelper.BED), mod.getWorld().getBlockState(p).getBlock())) {
                             // We have a bed!
                             closeEnough = true;
                         }
@@ -187,15 +192,15 @@ public class PlaceBedAndSetSpawnTask extends Task {
                     _inBedTimer.reset();
                 }
                 // Keep track of where our spawn point is
-                _bedForSpawnPoint = WorldUtil.getBedHead(mod, toSleepIn);
+                _bedForSpawnPoint = WorldHelper.getBedHead(mod, toSleepIn);
                 //Debug.logMessage("Bed spawn point: " + _bedForSpawnPoint);
                 _progressChecker.reset();
                 return new InteractWithBlockTask(targetMove);
-            }, pos -> mod.getBlockTracker().getNearestTracking(pos, BEDS), BEDS);
+            }, BEDS);
         }
 
         // Get a bed if we don't have one.
-        if (!mod.getInventoryTracker().hasItem(ItemUtil.BED)) {
+        if (!mod.getInventoryTracker().hasItem(ItemHelper.BED)) {
             setDebugState("Getting a bed first");
             return TaskCatalogue.getItemTask("bed", 1);
         }
@@ -216,7 +221,7 @@ public class PlaceBedAndSetSpawnTask extends Task {
 
         for (Vec3i baseOffs : BED_BOTTOM_PLATFORM) {
             BlockPos toPlace = _currentBedRegion.add(baseOffs);
-            if (!WorldUtil.isSolid(mod, toPlace)) {
+            if (!WorldHelper.isSolid(mod, toPlace)) {
                 _currentStructure = toPlace;
                 break;
             }
@@ -227,7 +232,7 @@ public class PlaceBedAndSetSpawnTask extends Task {
             for (int dz = 0; dz < BED_CLEAR_SIZE.getZ(); ++dz) {
                 for (int dy = 0; dy < BED_CLEAR_SIZE.getY(); ++dy) {
                     BlockPos toClear = _currentBedRegion.add(dx, dy, dz);
-                    if (WorldUtil.isSolid(mod, toClear)) {
+                    if (WorldHelper.isSolid(mod, toClear)) {
                         _currentBreak = toClear;
                         break outer;
                     }
@@ -236,7 +241,7 @@ public class PlaceBedAndSetSpawnTask extends Task {
         }
 
         if (_currentStructure != null) {
-            if (WorldUtil.isSolid(mod, _currentStructure)) {
+            if (WorldHelper.isSolid(mod, _currentStructure)) {
                 _currentStructure = null;
             } else {
                 setDebugState("Placing structure for bed");
@@ -244,7 +249,7 @@ public class PlaceBedAndSetSpawnTask extends Task {
             }
         }
         if (_currentBreak != null) {
-            if (!WorldUtil.isSolid(mod, _currentBreak)) {
+            if (!WorldHelper.isSolid(mod, _currentBreak)) {
                 _currentBreak = null;
             } else {
                 setDebugState("Clearing region for bed");
@@ -283,8 +288,8 @@ public class PlaceBedAndSetSpawnTask extends Task {
     }
 
     @Override
-    protected boolean isEqual(Task obj) {
-        return obj instanceof PlaceBedAndSetSpawnTask;
+    protected boolean isEqual(Task other) {
+        return other instanceof PlaceBedAndSetSpawnTask;
     }
 
     @Override
@@ -358,8 +363,8 @@ public class PlaceBedAndSetSpawnTask extends Task {
     }
 
     private boolean isGoodAsBorder(AltoClef mod, BlockPos pos) {
-        if (WorldUtil.isSolid(mod, pos)) {
-            return WorldUtil.canBreak(mod, pos);
-        } else return (WorldUtil.isAir(mod, pos));
+        if (WorldHelper.isSolid(mod, pos)) {
+            return WorldHelper.canBreak(mod, pos);
+        } else return (WorldHelper.isAir(mod, pos));
     }
 }

@@ -5,8 +5,8 @@ import adris.altoclef.commandsystem.Arg;
 import adris.altoclef.commandsystem.ArgParser;
 import adris.altoclef.commandsystem.Command;
 import adris.altoclef.commandsystem.CommandException;
-import adris.altoclef.tasks.misc.LocateDesertTempleTask;
 import adris.altoclef.tasks.misc.speedrun.LocateStrongholdTask;
+import adris.altoclef.tasks.movement.LocateDesertTempleTask;
 
 public class LocateStructureCommand extends Command {
 
@@ -15,14 +15,14 @@ public class LocateStructureCommand extends Command {
     }
 
     @Override
-    protected void Call(AltoClef mod, ArgParser parser) throws CommandException {
-        Structure structure = parser.Get(Structure.class);
+    protected void call(AltoClef mod, ArgParser parser) throws CommandException {
+        Structure structure = parser.get(Structure.class);
         switch (structure) {
             case STRONGHOLD:
-                mod.runUserTask(new LocateStrongholdTask(1), nothing -> finish());
+                mod.runUserTask(new LocateStrongholdTask(1), this::finish);
                 break;
             case DESERT_TEMPLE:
-                mod.runUserTask(new LocateDesertTempleTask(), nothing -> finish());
+                mod.runUserTask(new LocateDesertTempleTask(), this::finish);
                 break;
         }
     }

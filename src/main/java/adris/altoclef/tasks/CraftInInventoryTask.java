@@ -1,13 +1,16 @@
 package adris.altoclef.tasks;
 
 import adris.altoclef.AltoClef;
-import adris.altoclef.Debug;
+import adris.altoclef.tasks.resources.CollectRecipeCataloguedResourcesTask;
+import adris.altoclef.tasks.slot.EnsureFreeInventorySlotTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.CraftingRecipe;
 import adris.altoclef.util.ItemTarget;
 import adris.altoclef.util.RecipeTarget;
-import adris.altoclef.util.slots.Slot;
 
+/**
+ * Crafts an item within the 2x2 inventory crafting grid.
+ */
 public class CraftInInventoryTask extends ResourceTask {
 
     private final CraftingRecipe _recipe;
@@ -46,11 +49,8 @@ public class CraftInInventoryTask extends ResourceTask {
         }
 
         // Free up inventory
-        if (!mod.getInventoryTracker().ensureFreeInventorySlot()) {
-            if (!_fullCheckFailed) {
-                Debug.logWarning("Failed to free up inventory as no throwaway-able slot was found. Awaiting user input.");
-            }
-            _fullCheckFailed = true;
+        if (mod.getInventoryTracker().isInventoryFull()) {
+            return new EnsureFreeInventorySlotTask();
         }
 
         setDebugState("Crafting in inventory... for " + toGet);
@@ -65,10 +65,9 @@ public class CraftInInventoryTask extends ResourceTask {
 
     @Override
     protected boolean isEqualResource(ResourceTask other) {
-        if (other instanceof CraftInInventoryTask) {
-            CraftInInventoryTask t = (CraftInInventoryTask) other;
-            if (!t._recipe.equals(_recipe)) return false;
-            return isCraftingEqual(t);
+        if (other instanceof CraftInInventoryTask task) {
+            if (!task._recipe.equals(_recipe)) return false;
+            return isCraftingEqual(task);
         }
         return false;
     }
