@@ -27,7 +27,7 @@ public class AltoClefCommands {
                 new GamerCommand(),
                 new PunkCommand(),
                 new SetGammaCommand(),
-                new ListCommand()
+                new ListCommand(),
                 new AssistCommand()
                 //new TestMoveInventoryCommand(),
                 //    new TestSwapInventoryCommand()

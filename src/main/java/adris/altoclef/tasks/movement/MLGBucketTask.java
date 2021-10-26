@@ -14,6 +14,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.item.Items;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.hit.HitResult.Type;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
@@ -23,6 +24,8 @@ import java.util.Optional;
 public class MLGBucketTask extends Task {
 
     private boolean _clicked;
+
+    private boolean _hasWaterBucket = true;
 
     private BlockPos _placedPos;
 
@@ -55,7 +58,7 @@ public class MLGBucketTask extends Task {
         for (Vec3d offset : offsets) {
             RaycastContext rctx = test(mod.getPlayer(), offset);
             BlockHitResult hit = mod.getWorld().raycast(rctx);
-            if (hit.getType() == HitResult.Type.BLOCK) {
+            if (hit.getType() == Type.BLOCK) {
                 double curDis = hit.squaredDistanceTo(mod.getPlayer());
                 if (curDis < bestSqDist) {
                     result = hit;
@@ -64,7 +67,7 @@ public class MLGBucketTask extends Task {
             }
         }
 
-        if (result != null && result.getType() == HitResult.Type.BLOCK) {
+        if (result != null && result.getType() == Type.BLOCK) {
             BlockPos toPlaceOn = result.getBlockPos();
 
             BlockPos willLandIn = toPlaceOn.up();
@@ -78,7 +81,19 @@ public class MLGBucketTask extends Task {
                 return null;
             }
 
-            if (!mod.getSlotHandler().forceEquipItem(Items.WATER_BUCKET)) {
+            if(!mod.getInventoryTracker().hasItem(Items.WATER_BUCKET)) _hasWaterBucket = false;
+
+            if(_hasWaterBucket){
+
+                mod.getSlotHandler().forceEquipItem(Items.WATER_BUCKET);
+                mod.getClientBaritone().getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, false);
+
+            }
+            else if(mod.getInventoryTracker().hasItem(Items.COBWEB)){
+                if(!mod.getSlotHandler().forceEquipItem(Items.COBWEB)){
+                    Debug.logWarning("Failed to equip water bucket or cobweb, Fuck, prepare to die then!");
+
+                }
                 mod.getClientBaritone().getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, false);
             }
 
@@ -120,7 +135,8 @@ public class MLGBucketTask extends Task {
     @Override
     public boolean isFinished(AltoClef mod) {
         if (mod.getCurrentDimension() == Dimension.NETHER) return true;
-        return !mod.getInventoryTracker().hasItem(Items.WATER_BUCKET) || mod.getPlayer().isSwimming() || mod.getPlayer().isTouchingWater() || mod.getPlayer().isOnGround() || mod.getPlayer().isClimbing();
+      //!mod.getInventoryTracker().hasItem(Items.WATER_BUCKET) && !mod.getInventoryTracker().hasItem(Items.COBWEB) ||
+        return  mod.getPlayer().isSwimming() || mod.getPlayer().isTouchingWater() || mod.getPlayer().isOnGround() || mod.getPlayer().isClimbing();
     }
 
     @Override

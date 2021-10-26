@@ -19,9 +19,9 @@ public class AssistCommand extends Command
         );
     }
 
-    @Override protected void Call(AltoClef mod, ArgParser parser) throws CommandException
+    @Override protected void call(AltoClef mod, ArgParser parser) throws CommandException
     {
-        String _shouldDodgeArrows = parser.Get(String.class);
+        String _shouldDodgeArrows = parser.get(String.class);
         boolean _dodge = true;
 
         switch (_shouldDodgeArrows.toLowerCase(Locale.ROOT)){

@@ -54,7 +54,9 @@ public class MobDefenseChain extends SingleTaskChain {
     private boolean _doingFunkyStuff = false;
     private boolean _wasPuttingOutFire = false;
     private CustomBaritoneGoalTask _runAwayTask;
-
+    private boolean _shouldForceField = true;
+    private boolean _shouldAvoidMobs = true;
+    private boolean _shouldDodgeArrows = true;
     private float _cachedLastPriority;
 
     public MobDefenseChain(TaskRunner runner) {
@@ -106,7 +108,7 @@ public class MobDefenseChain extends SingleTaskChain {
         }
 
         // Force field
-        doForceField(mod);
+        if(_shouldForceField) doForceField(mod);
 
 
         // Tell baritone to avoid mobs if we're vulnurable.
@@ -133,7 +135,7 @@ public class MobDefenseChain extends SingleTaskChain {
         }
 
         // Dodge projectiles
-        if (!mod.getFoodChain().isTryingToEat() && mod.getModSettings().isDodgeProjectiles() && isProjectileClose(mod)) {
+        if (_shouldDodgeArrows && !mod.getFoodChain().isTryingToEat() && mod.getModSettings().isDodgeProjectiles() && isProjectileClose(mod)) {
             _doingFunkyStuff = true;
             //Debug.logMessage("DODGING");
             _runAwayTask = null;
@@ -142,16 +144,19 @@ public class MobDefenseChain extends SingleTaskChain {
         }
 
         // Dodge all mobs cause we boutta die son
-        if (isInDanger(mod)) {
-            _doingFunkyStuff = true;
-            if (_targetEntity == null) {
-                _runAwayTask = new RunAwayFromHostilesTask(DANGER_KEEP_DISTANCE);
-                setTask(_runAwayTask);
-                return 70;
+        if(_shouldAvoidMobs){
+            if (isInDanger(mod)) {
+                _doingFunkyStuff = true;
+                if (_targetEntity == null) {
+                    _runAwayTask = new RunAwayFromHostilesTask(DANGER_KEEP_DISTANCE);
+                    setTask(_runAwayTask);
+                    return 70;
+                }
             }
         }
 
-        if (mod.getModSettings().shouldDealWithAnnoyingHostiles()) {
+
+        if (mod.getModSettings().shouldDealWithAnnoyingHostiles() && _shouldAvoidMobs) {
             // Deal with hostiles because they are annoying.
             List<Entity> hostiles;
             // TODO: I don't think this lock is necessary at all.
@@ -172,27 +177,30 @@ public class MobDefenseChain extends SingleTaskChain {
 
             // TODO: I don't think this lock is necessary at all.
             synchronized (BaritoneHelper.MINECRAFT_LOCK) {
-                for (Entity hostile : hostiles) {
-                    int annoyingRange = (hostile instanceof SkeletonEntity || hostile instanceof WitchEntity) ? 18 : 5;
-                    boolean isClose = hostile.isInRange(mod.getPlayer(), annoyingRange);
+                if(_shouldAvoidMobs){
+                    for (Entity hostile : hostiles) {
+                        int annoyingRange = (hostile instanceof SkeletonEntity || hostile instanceof WitchEntity) ? 18 : 5;
+                        boolean isClose = hostile.isInRange(mod.getPlayer(), annoyingRange);
 
-                    if (isClose) {
-                        isClose = LookHelper.seesPlayer(hostile, mod.getPlayer(), annoyingRange);
-                    }
+                        if (isClose) {
+                            isClose = LookHelper.seesPlayer(hostile, mod.getPlayer(), annoyingRange);
+                        }
 
-                    // Give each hostile a timer, if they're close for too long deal with them.
-                    if (isClose) {
-                        if (!_closeAnnoyingEntities.containsKey(hostile)) {
-                            _closeAnnoyingEntities.put(hostile, new TimerGame(mod.getModSettings().getKillHostileWhenCloseForSeconds()));
-                            _closeAnnoyingEntities.get(hostile).reset();
+                        // Give each hostile a timer, if they're close for too long deal with them.
+                        if (isClose) {
+                            if (!_closeAnnoyingEntities.containsKey(hostile)) {
+                                _closeAnnoyingEntities.put(hostile, new TimerGame(mod.getModSettings().getKillHostileWhenCloseForSeconds()));
+                                _closeAnnoyingEntities.get(hostile).reset();
+                            }
+                            if (_closeAnnoyingEntities.get(hostile).elapsed()) {
+                                toDealWith.add(hostile);
+                            }
+                        } else {
+                            _closeAnnoyingEntities.remove(hostile);
                         }
-                        if (_closeAnnoyingEntities.get(hostile).elapsed()) {
-                            toDealWith.add(hostile);
-                        }
-                    } else {
-                        _closeAnnoyingEntities.remove(hostile);
                     }
                 }
+
 
                 // Clear dead/non existing hostiles
                 List<Entity> toRemove = new ArrayList<>();
@@ -467,6 +475,21 @@ public class MobDefenseChain extends SingleTaskChain {
     public void setForceFieldRange(double range) {
         _killAura.setRange(range);
     }
+
+    public void ShouldForceField(boolean value){
+
+       _shouldForceField = value;
+    }
+
+    public void ShouldAvoidMobs(boolean value){
+        _shouldAvoidMobs = value;
+    }
+
+    public void ShouldDodgeArrows(boolean value){
+        _shouldDodgeArrows = value;
+    }
+
+
 
     public void resetForceField() {
         _killAura.setRange(Double.POSITIVE_INFINITY);

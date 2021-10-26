@@ -18,7 +18,7 @@ public class GoToblock extends Command
         super("Test", "raycast to point and path", args);
     }
 
-    @Override protected void Call(AltoClef mod, ArgParser parser) throws CommandException
+    @Override protected void call(AltoClef mod, ArgParser parser) throws CommandException
     {
 //        Vec3d playerEyepos = mod.getPlayer().getEyePos();
 //        Vec3d rayEndPos = mod.getPlayer().getEyePos();
