@@ -13,6 +13,7 @@ public class StopCommand extends Command {
     @Override
     protected void call(AltoClef mod, ArgParser parser) {
         //added this so it calls onStop()
+        //TODO: is this a good idea?
         mod.getUserTaskChain().cancel(mod);
         finish();
     }
