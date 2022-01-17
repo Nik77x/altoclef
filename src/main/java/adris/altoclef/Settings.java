@@ -52,6 +52,12 @@ public class Settings {
     private boolean showTaskChains = true;
 
     /**
+     * If true, it will show a timer displaying how long the task was running.
+     * if false, it display the showTaskChains (if enabled) without the timer
+     */
+    private boolean showTimer = true;
+
+    /**
      * Whenever we're moving, speed up our client by a multiple of this number.
      * Useful when traveling long distances, and only is enabled when we're moving and not mining.
      * <p>
@@ -81,7 +87,7 @@ public class Settings {
 
     /**
      * amount of food to collect when the food in inventory
-     * is lower than the value of foodUnitsThreshold
+     * is lower than the value of minimumFoodAllowed
      */
     private int foodUnitsToCollect = 0;
 
@@ -267,6 +273,14 @@ public class Settings {
     };
 
     /**
+     * If set to true, will print information about whispers that are parsed and those
+     * that have failed parsing.
+     *
+     * Enable this if you need help setting up the whisper format.
+     */
+    private boolean whisperFormatDebug = false;
+
+    /**
      * If true, the bot will perform basic survival tasks when no commands are in progress
      * (eat food, force field mobs, etc.)
      * It will only perform survival tasks allowed by other parameters in the settings file.
@@ -439,6 +453,9 @@ public class Settings {
     public boolean shouldShowTaskChain() {
         return showTaskChains;
     }
+    public boolean shouldShowTimer() {
+        return showTimer;
+    }
 
     public float getSpeedHack() {
         return speedHack;
@@ -557,6 +574,10 @@ public class Settings {
 
     public String[] getWhisperFormats() {
         return whisperFormats;
+    }
+
+    public boolean isWhisperFormatDebug() {
+        return whisperFormatDebug;
     }
 
     public boolean isPositionExplicitelyProtected(BlockPos pos) {
