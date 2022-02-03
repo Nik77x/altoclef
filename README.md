@@ -3,6 +3,12 @@ Plays block game.
 
 Powered by Baritone.
 
+#This fork:
+
+I'm trying to add son QoL stuff, like the possibility to bind any command to a keybind
+and trying to make this bot help you on servers, but lag makes it fall soooo idk. 
+
+
 A client side bot that can accomplish any Minecraft task that is relatively simple and can be split into smaller tasks. "Relatively Simple" is a vague term, so check the list of current capabilities to see examples.
 
 Became [the first bot to beat Minecraft fully autonomously](https://youtu.be/baAa6s8tahA) on May 24, 2021.
