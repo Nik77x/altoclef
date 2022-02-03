@@ -5,7 +5,7 @@ Powered by Baritone.
 
 # This fork:
 
-I'm trying to add son QoL stuff, like the possibility to bind any command to a keybind
+I'm trying to add some QoL stuff, like the possibility to bind any command to a keybind
 and trying to make this bot help you on servers, but lag makes it fall soooo idk. 
 
 
