@@ -9,7 +9,7 @@ import adris.altoclef.tasks.construction.PlaceBlockTask;
 import adris.altoclef.tasks.movement.TimeoutWanderTask;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.ItemTarget;
-import adris.altoclef.util.csharpisbetter.TimerGame;
+import adris.altoclef.util.time.TimerGame;
 import adris.altoclef.util.helpers.WorldHelper;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -67,6 +67,9 @@ public class ConstructNetherPortalObsidianTask extends Task {
     private static BlockPos getBuildableAreaNearby(AltoClef mod) {
         BlockPos checkOrigin = mod.getPlayer().getBlockPos();
         for (BlockPos toCheck : WorldHelper.scanRegion(mod, checkOrigin, checkOrigin.add(PORTALABLE_REGION_SIZE))) {
+            if (MinecraftClient.getInstance().world == null) {
+                return null;
+            }
             BlockState state = MinecraftClient.getInstance().world.getBlockState(toCheck);
             boolean validToWorld = (WorldHelper.canPlace(mod, toCheck) || WorldHelper.canBreak(mod, toCheck));
             if (!validToWorld || state.getBlock() == Blocks.LAVA || state.getBlock() == Blocks.WATER || state.getBlock() == Blocks.BEDROCK) {
@@ -113,7 +116,7 @@ public class ConstructNetherPortalObsidianTask extends Task {
         }
 
         // Get obsidian if we don't have.
-        if (mod.getInventoryTracker().getItemCount(Items.OBSIDIAN) < neededObsidian) {
+        if (mod.getItemStorage().getItemCount(Items.OBSIDIAN) < neededObsidian) {
             setDebugState("Getting obsidian");
             return TaskCatalogue.getItemTask(Items.OBSIDIAN, neededObsidian);
         }
@@ -130,7 +133,7 @@ public class ConstructNetherPortalObsidianTask extends Task {
         }
 
         // Get flint and steel
-        if (!mod.getInventoryTracker().hasItem(Items.FLINT_AND_STEEL)) {
+        if (!mod.getItemStorage().hasItem(Items.FLINT_AND_STEEL)) {
             setDebugState("Getting flint and steel");
             return TaskCatalogue.getItemTask(Items.FLINT_AND_STEEL, 1);
         }
