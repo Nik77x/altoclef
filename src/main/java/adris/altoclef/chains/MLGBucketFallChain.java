@@ -40,13 +40,16 @@ public class MLGBucketFallChain extends SingleTaskChain implements ITaskOverride
         if (!AltoClef.inGame()) return Float.NEGATIVE_INFINITY;
 
         if (isFallingOhNo(mod)) {
+
             _tryCollectWaterTimer.reset();
             setTask(new MLGBucketTask());
             _lastMLG = (MLGBucketTask) _mainTask;
             return 100;
         } else if (!_tryCollectWaterTimer.elapsed() && mod.getPlayer().getVelocity().y >= -0.5) { // Why -0.5? Cause it's slower than -0.7.
             // We just placed water, try to collect it.
-            if (mod.getItemStorage().hasItem(Items.BUCKET) && !mod.getItemStorage().hasItem(Items.WATER_BUCKET)) {
+            // && !mod.getInventoryTracker().hasItem(Items.WATER_BUCKET)
+            // ^^ if you have more than one water bucket it doesn't pick up the water
+            if (mod.getInventoryTracker().hasItem(Items.BUCKET) ) {
 
                 if (_lastMLG != null) {
                     BlockPos placed = _lastMLG.getWaterPlacedPos();
@@ -120,6 +123,10 @@ public class MLGBucketFallChain extends SingleTaskChain implements ITaskOverride
 
     public boolean isFallingOhNo(AltoClef mod) {
         if (!mod.getModSettings().shouldAutoMLGBucket()) {
+            return false;
+        }
+        if (!mod.getInventoryTracker().hasItem(Items.WATER_BUCKET) && !mod.getInventoryTracker().hasItem(Items.COBWEB)) {
+            // No bucket or cobweb, no point.
             return false;
         }
         if (mod.getPlayer().isSwimming() || mod.getPlayer().isTouchingWater() || mod.getPlayer().isOnGround() || mod.getPlayer().isClimbing()) {

@@ -1,5 +1,7 @@
 package adris.altoclef;
 
+import adris.altoclef.KeybindActions.KeybindingsSystem.KeyAction;
+import adris.altoclef.KeybindActions.KeybindingsSystem.KeybindingsList;
 import adris.altoclef.butler.Butler;
 import adris.altoclef.chains.*;
 import adris.altoclef.commandsystem.CommandExecutor;
@@ -24,22 +26,41 @@ import baritone.Baritone;
 import baritone.altoclef.AltoClefSettings;
 import baritone.api.BaritoneAPI;
 import baritone.api.Settings;
+import ca.weblite.objc.Client;
+
+import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.network.ClientConnection;
+import net.minecraft.text.LiteralText;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import org.lwjgl.glfw.GLFW;
 
 /**
  * Central access point for AltoClef
@@ -78,17 +99,34 @@ public class AltoClef implements ModInitializer {
     // Butler
     private Butler _butler;
 
+    private List<KeyAction> keyActions = new ArrayList<KeyAction>();
+
+
+    // uh oh static
+    public static int getTicks() {
+        ClientConnection con = Objects.requireNonNull(MinecraftClient.getInstance().getNetworkHandler()).getConnection();
+        return ((ClientConnectionAccessor) con).getTicks();
+    }
+
     // Are we in game (playing in a server/world)
     public static boolean inGame() {
         return MinecraftClient.getInstance().player != null && MinecraftClient.getInstance().getNetworkHandler() != null;
     }
 
+    private static KeyBinding keyBinding;
     @Override
     public void onInitialize() {
         // This code runs as soon as Minecraft is in a mod-load-ready state.
         // However, some things (like resources) may still be uninitialized.
         // As such, nothing will be loaded here but basic initialization.
         EventBus.subscribe(TitleScreenEntryEvent.class, evt -> onInitializeLoad());
+        StaticMixinHookups.hookupMod(this);
+        //FabricLoader.getInstance().getEntrypoints();
+        new AltoClefKeybindings(this);
+
+        initializeKeybindings();
+
+
     }
 
     public void onInitializeLoad() {
@@ -131,6 +169,12 @@ public class AltoClef implements ModInitializer {
         _butler = new Butler(this);
 
         initializeCommands();
+        //new AltoClefKeybindings(this);
+
+        // Misc wiring
+        // When we place a block and might be tracking it, make the change immediate.
+        _extraController.onBlockPlaced.addListener(new ActionListener<>(value ->
+                _blockTracker.addBlock(value.blockState.getBlock(), value.blockPos)));
 
         // Load settings
         adris.altoclef.Settings.load(newSettings -> {
@@ -173,6 +217,8 @@ public class AltoClef implements ModInitializer {
         // External mod initialization
         runEnqueuedPostInits();
     }
+
+
 
     // Client tick
     private void onClientTick() {
@@ -248,6 +294,39 @@ public class AltoClef implements ModInitializer {
         }
     }
 
+    //TODO
+    private void initializeKeybindings(){
+
+
+        for (KeyAction keyAction : keyActions)
+        {
+            KeyBinding key = KeyBindingHelper.registerKeyBinding(keyAction.GetKeybinding());
+
+            ClientTickEvents.END_CLIENT_TICK.register(client -> {
+                while (key.wasPressed()){
+                    keyAction.execute(this);
+
+                }
+            });
+        }
+
+    }
+
+    public void RegisterKeybindingAction(KeyAction...kActions){
+
+        for (KeyAction action : kActions)
+        {
+            keyActions.add(action);
+
+            System.out.println("[KeybindingsInitialization] registered keybinding: " + action.GetName());
+        }
+        //Collections.addAll(keyActions, kActoins);
+    }
+
+
+
+
+    // Main handlers access
     /**
      * Executes commands (ex. `@get`/`@gamer`)
      */
@@ -443,6 +522,16 @@ public class AltoClef implements ModInitializer {
      */
     public MLGBucketFallChain getMLGBucketChain() {
         return _mlgBucketChain;
+    }
+
+    public Dimension getCurrentDimension() {
+        if (!inGame()) return Dimension.OVERWORLD;
+        if (getWorld().getDimension().isUltrawarm()) return Dimension.NETHER;
+        if (getWorld().getDimension().isNatural()) return Dimension.OVERWORLD;
+        return Dimension.END;
+    }
+    public Vec3d getOverworldPosition() {
+        return WorldHelper.getOverworldPosition(this, getPlayer().getPos());
     }
 
     public void log(String message) {

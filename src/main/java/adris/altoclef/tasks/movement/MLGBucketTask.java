@@ -24,6 +24,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.hit.HitResult.Type;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
@@ -56,6 +57,8 @@ public class MLGBucketTask extends Task {
         ConfigHelper.loadConfig("configs/mlg_clutch_settings.json", MLGClutchConfig::new, MLGClutchConfig.class, newConfig -> _config = newConfig);
     }
 
+    private boolean _hasWaterBucket = true;
+
     private BlockPos _placedPos;
     private BlockPos _movingTorwards;
 
@@ -81,7 +84,7 @@ public class MLGBucketTask extends Task {
         // Look down at first, might help
         mod.getPlayer().setPitch(90);
     }
-
+    //TODO: Add back in the MLG cobweb
     @Override
     protected Task onTick(AltoClef mod) {
         // ALWAYS faster
