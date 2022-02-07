@@ -12,7 +12,7 @@ public abstract class KeyAction
 {
     private String _name;
     private KeyBinding keyBinding;
-
+//TODO: integrate this in the command system, so there isn't code duplication and any command can be optionally bound to a key
     public KeyAction(String keyName, InputUtil.Type mouseOrKeyboard ,int keyCode, String category)
     {
 
