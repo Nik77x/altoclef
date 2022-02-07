@@ -1,9 +1,38 @@
 package adris.altoclef;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.network.ClientPlayerInteractionManager;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.item.Item;
+import net.minecraft.item.Items;
+import net.minecraft.network.ClientConnection;
+
+import org.lwjgl.glfw.GLFW;
+
 import adris.altoclef.KeybindActions.KeybindingsSystem.KeyAction;
-import adris.altoclef.KeybindActions.KeybindingsSystem.KeybindingsList;
 import adris.altoclef.butler.Butler;
-import adris.altoclef.chains.*;
+import adris.altoclef.chains.DeathMenuChain;
+import adris.altoclef.chains.FoodChain;
+import adris.altoclef.chains.MLGBucketFallChain;
+import adris.altoclef.chains.MobDefenseChain;
+import adris.altoclef.chains.PlayerInteractionFixChain;
+import adris.altoclef.chains.UserTaskChain;
+import adris.altoclef.chains.WorldSurvivalChain;
 import adris.altoclef.commandsystem.CommandExecutor;
 import adris.altoclef.control.InputControls;
 import adris.altoclef.control.PlayerExtraController;
@@ -13,9 +42,14 @@ import adris.altoclef.eventbus.events.ClientRenderEvent;
 import adris.altoclef.eventbus.events.ClientTickEvent;
 import adris.altoclef.eventbus.events.SendChatEvent;
 import adris.altoclef.eventbus.events.TitleScreenEntryEvent;
+import adris.altoclef.mixins.ClientConnectionAccessor;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.tasksystem.TaskRunner;
-import adris.altoclef.trackers.*;
+import adris.altoclef.trackers.BlockTracker;
+import adris.altoclef.trackers.EntityTracker;
+import adris.altoclef.trackers.MiscBlockTracker;
+import adris.altoclef.trackers.SimpleChunkTracker;
+import adris.altoclef.trackers.TrackerManager;
 import adris.altoclef.trackers.storage.ContainerSubTracker;
 import adris.altoclef.trackers.storage.ItemStorageTracker;
 import adris.altoclef.ui.CommandStatusOverlay;
@@ -26,41 +60,6 @@ import baritone.Baritone;
 import baritone.altoclef.AltoClefSettings;
 import baritone.api.BaritoneAPI;
 import baritone.api.Settings;
-import ca.weblite.objc.Client;
-
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.network.ClientPlayerInteractionManager;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.network.ClientConnection;
-import net.minecraft.text.LiteralText;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.chunk.WorldChunk;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import org.lwjgl.glfw.GLFW;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Queue;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Central access point for AltoClef
@@ -120,8 +119,7 @@ public class AltoClef implements ModInitializer {
         // However, some things (like resources) may still be uninitialized.
         // As such, nothing will be loaded here but basic initialization.
         EventBus.subscribe(TitleScreenEntryEvent.class, evt -> onInitializeLoad());
-        StaticMixinHookups.hookupMod(this);
-        //FabricLoader.getInstance().getEntrypoints();
+
         new AltoClefKeybindings(this);
 
         initializeKeybindings();
@@ -172,9 +170,7 @@ public class AltoClef implements ModInitializer {
         //new AltoClefKeybindings(this);
 
         // Misc wiring
-        // When we place a block and might be tracking it, make the change immediate.
-        _extraController.onBlockPlaced.addListener(new ActionListener<>(value ->
-                _blockTracker.addBlock(value.blockState.getBlock(), value.blockPos)));
+
 
         // Load settings
         adris.altoclef.Settings.load(newSettings -> {
@@ -522,16 +518,6 @@ public class AltoClef implements ModInitializer {
      */
     public MLGBucketFallChain getMLGBucketChain() {
         return _mlgBucketChain;
-    }
-
-    public Dimension getCurrentDimension() {
-        if (!inGame()) return Dimension.OVERWORLD;
-        if (getWorld().getDimension().isUltrawarm()) return Dimension.NETHER;
-        if (getWorld().getDimension().isNatural()) return Dimension.OVERWORLD;
-        return Dimension.END;
-    }
-    public Vec3d getOverworldPosition() {
-        return WorldHelper.getOverworldPosition(this, getPlayer().getPos());
     }
 
     public void log(String message) {
