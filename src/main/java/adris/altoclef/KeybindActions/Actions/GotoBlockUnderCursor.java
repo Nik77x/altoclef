@@ -1,5 +1,6 @@
 package adris.altoclef.KeybindActions.Actions;
 
+import adris.altoclef.KeybindActions.KeybindingsSystem.KeybindSettings;
 import net.minecraft.client.util.InputUtil.Type;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -21,7 +22,7 @@ public class GotoBlockUnderCursor extends KeyAction
 
     public GotoBlockUnderCursor()
     {
-        super("GotoBlockUnderCursor", Type.KEYSYM, GLFW.GLFW_KEY_B, "Utils");
+        super(new KeybindSettings("Utils", "GotoBlockUnderCursor", Type.KEYSYM, GLFW.GLFW_KEY_B));
     }
 
     @Override public void execute(AltoClef mod)

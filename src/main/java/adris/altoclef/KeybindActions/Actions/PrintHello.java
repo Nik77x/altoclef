@@ -1,5 +1,6 @@
 package adris.altoclef.KeybindActions.Actions;
 
+import adris.altoclef.KeybindActions.KeybindingsSystem.KeybindSettings;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.InputUtil.Type;
 
@@ -13,14 +14,14 @@ public class PrintHello extends KeyAction
 
     public PrintHello()
     {
-        super("PrintHello", Type.KEYSYM,  GLFW.GLFW_KEY_K, "Utils");
+        super(new KeybindSettings("Utils", "PrintHello", Type.KEYSYM, GLFW.GLFW_KEY_K));
     }
 
 
 
     @Override public void execute(AltoClef mod)
     {
-        mod.getPlayer().sendChatMessage("WORKS!!!");
+        mod.getPlayer().sendChatMessage("Hello!");
     }
 
 }

@@ -13,7 +13,7 @@ public abstract class KeyAction
     private String _name;
     private KeyBinding keyBinding;
 //TODO: integrate this in the command system, so there isn't code duplication and any command can be optionally bound to a key
-    public KeyAction(String keyName, InputUtil.Type mouseOrKeyboard ,int keyCode, String category)
+    public KeyAction(KeybindSettings keybindSettings)
     {
 
         //      "key.AltoClef.GoToLookedBlock",         // The translation key of the keybinding's name
@@ -21,8 +21,8 @@ public abstract class KeyAction
         //        GLFW.GLFW_KEY_T,                      // The keycode of the key
         //       "category.AltoClef.AltoClefUtils"));   // The translation key of the keybinding's category
 
-        keyBinding = new KeyBinding("key.AltoClef." + keyName, mouseOrKeyboard , keyCode, "category.AltoClef."+ category );
-        _name = keyName;
+        keyBinding = new KeyBinding("key.AltoClef." + keybindSettings._keybindName, keybindSettings._InputType , keybindSettings._KeyCode, "category.AltoClef."+ keybindSettings._category );
+        _name = keybindSettings._keybindName;
     }
 
     public abstract void execute(AltoClef mod);
