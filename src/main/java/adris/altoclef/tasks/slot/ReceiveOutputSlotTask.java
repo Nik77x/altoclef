@@ -1,7 +1,6 @@
 package adris.altoclef.tasks.slot;
 
 import adris.altoclef.AltoClef;
-import adris.altoclef.tasksystem.ITaskUsesCraftingGrid;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.util.helpers.ItemHelper;
 import adris.altoclef.util.helpers.StorageHelper;
@@ -11,16 +10,18 @@ import adris.altoclef.util.slots.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.slot.SlotActionType;
 
-public class ReceiveCraftingOutputSlotTask extends Task implements ITaskUsesCraftingGrid {
+import java.util.Optional;
+
+public class ReceiveOutputSlotTask extends Task {
 
     private final int _toTake;
     private final Slot _slot;
 
-    public ReceiveCraftingOutputSlotTask(Slot slot, int toTake) {
+    public ReceiveOutputSlotTask(Slot slot, int toTake) {
         _slot = slot;
         _toTake = toTake;
     }
-    public ReceiveCraftingOutputSlotTask(Slot slot, boolean all) {
+    public ReceiveOutputSlotTask(Slot slot, boolean all) {
         this(slot, all? Integer.MAX_VALUE : 1);
     }
 
@@ -33,9 +34,25 @@ public class ReceiveCraftingOutputSlotTask extends Task implements ITaskUsesCraf
     protected Task onTick(AltoClef mod) {
         ItemStack inOutput = StorageHelper.getItemStackInSlot(_slot);
         ItemStack cursor = StorageHelper.getItemStackInCursorSlot();
-        boolean cursorSlotFree = cursor.isEmpty();
-        if(!cursorSlotFree && !ItemHelper.canStackTogether(inOutput, cursor)) {
-            return new EnsureFreeCursorSlotTask();
+        if (!cursor.isEmpty() && !ItemHelper.canStackTogether(inOutput, cursor)) {
+            Optional<Slot> moveTo = mod.getItemStorage().getSlotThatCanFitInPlayerInventory(cursor, false);
+            if (moveTo.isPresent()) {
+                setDebugState("Moving cursor stack back");
+                return new ClickSlotTask(moveTo.get());
+            }
+            if (ItemHelper.canThrowAwayStack(mod, cursor)) {
+                setDebugState("Incompatible cursor stack, throwing");
+                return new ThrowCursorTask();
+            } else {
+                Optional<Slot> garbage = StorageHelper.getGarbageSlot(mod);
+                if (garbage.isPresent()) {
+                    setDebugState("Picking up garbage");
+                    return new ClickSlotTask(garbage.get());
+                } else {
+                    setDebugState("STUCK! Everything's protected.");
+                    return null;
+                }
+            }
         }
         int craftCount = inOutput.getCount() * getCraftMultipleCount(mod);
         int weWantToAddToInventory = _toTake - mod.getItemStorage().getItemCountInventoryOnly(inOutput.getItem());
@@ -55,7 +72,7 @@ public class ReceiveCraftingOutputSlotTask extends Task implements ITaskUsesCraf
 
     @Override
     protected boolean isEqual(Task other) {
-        if (other instanceof ReceiveCraftingOutputSlotTask task) {
+        if (other instanceof ReceiveOutputSlotTask task) {
             return task._slot.equals(_slot) && task._toTake == _toTake;
         }
         return false;

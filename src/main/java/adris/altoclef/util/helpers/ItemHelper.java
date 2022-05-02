@@ -4,7 +4,6 @@ import adris.altoclef.AltoClef;
 import adris.altoclef.util.WoodType;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.LeavesBlock;
 import net.minecraft.block.MapColor;
 import net.minecraft.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.item.BlockItem;
@@ -12,9 +11,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.tag.BlockTags;
-import net.minecraft.tag.TagKey;
 import net.minecraft.util.DyeColor;
-import net.minecraft.util.registry.Registry;
+
 import java.util.*;
 
 /**
@@ -277,9 +275,7 @@ public class ItemHelper {
 
     public static boolean areShearsEffective(Block b) {
         return
-                //b.getRegistryEntry().streamTags().anyMatch(t -> t ==
-                // BlockTags.LEAVES); should also work... but is slower
-                b instanceof LeavesBlock
+                BlockTags.LEAVES.contains(b)
                         || b == Blocks.COBWEB
                         || b == Blocks.GRASS
                         || b == Blocks.TALL_GRASS
@@ -288,12 +284,8 @@ public class ItemHelper {
                         || b == Blocks.DEAD_BUSH
                         || b ==Blocks.VINE
                         || b == Blocks.TRIPWIRE
-                        || isOfBlockType(b, BlockTags.WOOL)
+                        || BlockTags.WOOL.contains(b)
                         || b == Blocks.NETHER_SPROUTS;
-    }
-
-    public static boolean isOfBlockType(Block b, TagKey<Block> tag) {
-        return Registry.BLOCK.getKey(b).map(e -> Registry.BLOCK.entryOf(e).streamTags().anyMatch(t -> t == tag)).orElse(false);
     }
 
     public static class ColorfulItems {

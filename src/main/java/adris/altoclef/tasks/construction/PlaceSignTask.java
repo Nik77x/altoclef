@@ -105,7 +105,7 @@ public class PlaceSignTask extends Task {
             screen.charTyped(c, -1);
             //screen.keyPressed(keyCode, -1, )
         }
-        screen.close();
+        screen.onClose();
         _finished = true;
 
         return null;
