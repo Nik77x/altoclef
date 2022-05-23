@@ -3,7 +3,9 @@
 Helps you play block game. 
 
 I'm trying to add some QoL stuff, like the possibility to bind any command to a keybind
-and trying to make this bot help you on servers, but lag makes it fall soooo idk. 
+and trying to make this bot help you on servers. Development is pretty slow because I have other things to do.
+
+for now you can create some new classes that are automatically bound to a keybind (works basically the same as the command system) needs some cleanup still but it works.
 
 
 
