@@ -43,6 +43,8 @@ import adris.altoclef.eventbus.events.ClientTickEvent;
 import adris.altoclef.eventbus.events.SendChatEvent;
 import adris.altoclef.eventbus.events.TitleScreenEntryEvent;
 import adris.altoclef.mixins.ClientConnectionAccessor;
+import adris.altoclef.render.GameEventListener;
+import adris.altoclef.render.Renderer;
 import adris.altoclef.tasksystem.Task;
 import adris.altoclef.tasksystem.TaskRunner;
 import adris.altoclef.trackers.BlockTracker;
@@ -60,6 +62,7 @@ import baritone.Baritone;
 import baritone.altoclef.AltoClefSettings;
 import baritone.api.BaritoneAPI;
 import baritone.api.Settings;
+import baritone.utils.IRenderer;
 
 /**
  * Central access point for AltoClef
@@ -100,6 +103,8 @@ public class AltoClef implements ModInitializer {
 
     private List<KeyAction> keyActions = new ArrayList<KeyAction>();
 
+    //private Renderer _renderer = new Renderer();
+
 
     // uh oh static
     public static int getTicks() {
@@ -125,11 +130,15 @@ public class AltoClef implements ModInitializer {
         initializeKeybindings();
 
 
+
     }
 
     public void onInitializeLoad() {
         // This code should be run after Minecraft loads everything else in.
         // This is the actual start point, controlled by a mixin.
+
+
+        getClientBaritone().getGameEventHandler().registerEventListener(new GameEventListener(this));
 
         initializeBaritoneSettings();
 

@@ -1,5 +1,6 @@
 package adris.altoclef;
 
+import adris.altoclef.Test.RenderTest;
 import adris.altoclef.butler.WhisperChecker;
 import adris.altoclef.tasks.construction.compound.ConstructIronGolemTask;
 import adris.altoclef.tasks.container.SmeltInFurnaceTask;
@@ -355,6 +356,9 @@ public class Playground {
                 }
                 break;
             }
+        case "render":
+            mod.runUserTask(new RenderTest());
+
             default:
                 mod.logWarning("Test not found: \"" + arg + "\".");
                 break;
