@@ -1,4 +1,6 @@
-package adris.altoclef.render;
+package adris.altoclef.eventbus;
+
+import java.awt.*;
 
 import net.minecraft.util.math.Box;
 
@@ -18,14 +20,14 @@ import baritone.api.event.events.WorldEvent;
 import baritone.api.event.listener.IGameEventListener;
 import baritone.utils.IRenderer;
 
-public class GameEventListener implements IGameEventListener
+public class BaritoneEventListener implements IGameEventListener
 {
 
     private AltoClef _mod;
 
 
 
-    public GameEventListener(AltoClef mod){
+    public BaritoneEventListener(AltoClef mod){
         _mod = mod;
     }
 
@@ -56,12 +58,13 @@ public class GameEventListener implements IGameEventListener
     int counter;
     @Override public void onRenderPass(RenderEvent renderEvent)
     {
-        if(counter >= 10){
+        if(counter >= 100){
             _mod.log("rndr");
         }else{
             counter++;
         }
-
+        IRenderer.startLines();
+        IRenderer.glColor(Color.BLUE, 0.7f);
         IRenderer.drawAABB(renderEvent.getModelViewStack(), new Box(0,0,0, 10,10,10));
     }
 
