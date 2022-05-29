@@ -25,6 +25,7 @@ import net.minecraft.network.ClientConnection;
 import org.lwjgl.glfw.GLFW;
 
 import adris.altoclef.KeybindActions.KeybindingsSystem.KeyAction;
+import adris.altoclef.Render.AltoClefRenderer;
 import adris.altoclef.butler.Butler;
 import adris.altoclef.chains.DeathMenuChain;
 import adris.altoclef.chains.FoodChain;
@@ -90,6 +91,9 @@ public class AltoClef implements ModInitializer {
     private MiscBlockTracker _miscBlockTracker;
     // Renderers
     private CommandStatusOverlay _commandStatusOverlay;
+
+    private AltoClefRenderer _AltoClefRenderer;
+
     // Settings
     private adris.altoclef.Settings _settings;
     // Misc managers/input
@@ -164,6 +168,8 @@ public class AltoClef implements ModInitializer {
 
         // Renderers
         _commandStatusOverlay = new CommandStatusOverlay();
+
+        _AltoClefRenderer = new AltoClefRenderer();
 
         // Misc managers
         _messageSender = new MessageSender();
@@ -487,6 +493,11 @@ public class AltoClef implements ModInitializer {
     public InputControls getInputControls() {
         return _inputControls;
     }
+
+    public AltoClefRenderer getRenderer(){
+        return _AltoClefRenderer;
+    }
+
 
     /**
      * Run a user task

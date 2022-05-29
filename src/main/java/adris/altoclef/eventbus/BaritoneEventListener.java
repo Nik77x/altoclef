@@ -2,9 +2,12 @@ package adris.altoclef.eventbus;
 
 import java.awt.*;
 
+import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.Tessellator;
 import net.minecraft.util.math.Box;
 
 import adris.altoclef.AltoClef;
+import adris.altoclef.util.shapes.Line;
 import baritone.api.event.events.BlockInteractEvent;
 import baritone.api.event.events.ChatEvent;
 import baritone.api.event.events.ChunkEvent;
@@ -27,13 +30,21 @@ public class BaritoneEventListener implements IGameEventListener
 
 
 
+
     public BaritoneEventListener(AltoClef mod){
         _mod = mod;
     }
 
     @Override public void onTick(TickEvent tickEvent)
     {
+        Line lineToRender = new Line()
+                .Color(Color.BLUE, 1.0f)
+                .Width(10)
+                .ignoreDepth(true);
 
+                lineToRender.setPosition(0,0,0,0,100,0);
+
+        _mod.getRenderer().RenderObject(lineToRender);
     }
 
     @Override public void onPlayerUpdate(PlayerUpdateEvent playerUpdateEvent)
@@ -58,14 +69,9 @@ public class BaritoneEventListener implements IGameEventListener
     int counter;
     @Override public void onRenderPass(RenderEvent renderEvent)
     {
-        if(counter >= 100){
-            _mod.log("rndr");
-        }else{
-            counter++;
-        }
-        IRenderer.startLines();
-        IRenderer.glColor(Color.BLUE, 0.7f);
-        IRenderer.drawAABB(renderEvent.getModelViewStack(), new Box(0,0,0, 10,10,10));
+        // if(counter < 100) counter++; else _mod.log("yes");
+
+       _mod.getRenderer().Render(renderEvent.getModelViewStack());
     }
 
     @Override public void onWorldEvent(WorldEvent worldEvent)
