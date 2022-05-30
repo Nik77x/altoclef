@@ -1,13 +1,9 @@
 package adris.altoclef.eventbus;
 
-import java.awt.*;
-
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.util.math.Box;
+import java.util.ArrayList;
 
 import adris.altoclef.AltoClef;
-import adris.altoclef.util.shapes.Line;
+import adris.altoclef.Render.shapes.RenderableObject;
 import baritone.api.event.events.BlockInteractEvent;
 import baritone.api.event.events.ChatEvent;
 import baritone.api.event.events.ChunkEvent;
@@ -21,7 +17,6 @@ import baritone.api.event.events.TabCompleteEvent;
 import baritone.api.event.events.TickEvent;
 import baritone.api.event.events.WorldEvent;
 import baritone.api.event.listener.IGameEventListener;
-import baritone.utils.IRenderer;
 
 public class BaritoneEventListener implements IGameEventListener
 {
@@ -29,7 +24,7 @@ public class BaritoneEventListener implements IGameEventListener
     private AltoClef _mod;
 
 
-
+    private ArrayList<RenderableObject>  _tempRenderObjects = new ArrayList<>();
 
     public BaritoneEventListener(AltoClef mod){
         _mod = mod;
@@ -37,14 +32,10 @@ public class BaritoneEventListener implements IGameEventListener
 
     @Override public void onTick(TickEvent tickEvent)
     {
-        Line lineToRender = new Line()
-                .Color(Color.BLUE, 1.0f)
-                .Width(10)
-                .ignoreDepth(true);
 
-                lineToRender.setPosition(0,0,0,0,100,0);
 
-        _mod.getRenderer().RenderObject(lineToRender);
+        //_mod.getRenderer().RenderObject(lineToRender);
+        _mod.getRenderer().onTick();
     }
 
     @Override public void onPlayerUpdate(PlayerUpdateEvent playerUpdateEvent)
@@ -69,9 +60,9 @@ public class BaritoneEventListener implements IGameEventListener
     int counter;
     @Override public void onRenderPass(RenderEvent renderEvent)
     {
-        // if(counter < 100) counter++; else _mod.log("yes");
 
-       _mod.getRenderer().Render(renderEvent.getModelViewStack());
+        _mod.getRenderer().Render(renderEvent.getModelViewStack());
+
     }
 
     @Override public void onWorldEvent(WorldEvent worldEvent)
