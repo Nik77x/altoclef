@@ -40,6 +40,8 @@ public class RenderableObject
 
     private boolean _isRendered = false;
 
+    private DrawMode _drawMode = DrawMode.DEBUG_LINES;
+
     public RenderableObject(Color color, float lineWidth, float alpha, boolean ignoreDepth, boolean doubleSided)
     {
         _lineColor = color;
@@ -71,7 +73,7 @@ public class RenderableObject
 
         float[] colors = _lineColor.getColorComponents(null);
 
-        buffer.begin(DrawMode.DEBUG_LINE_STRIP, VertexFormats.POSITION_COLOR);
+        buffer.begin(_drawMode, VertexFormats.POSITION_COLOR);
 
         for (Vec3d position : _positions)
         {
@@ -124,6 +126,11 @@ public class RenderableObject
         RenderSystem.enableCull();
 
         _isRendered = true;
+    }
+
+
+    public void setDrawMode(DrawMode drawMode){
+        _drawMode = drawMode;
     }
 
     public void setColor(Color color, float alpha)
