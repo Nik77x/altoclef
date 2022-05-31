@@ -7,7 +7,8 @@ and trying to make this bot help you on servers. Development is pretty slow beca
 
 for now you can create some new classes that are automatically bound to a keybind (works basically the same as the command system) needs some cleanup still but it works.
 
-
+If you want to see some experimental stuff go to the Dev branch
+If you want stable code go to the main branch
 
 # altoclef
 Plays block game.
