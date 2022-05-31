@@ -358,6 +358,7 @@ public class Playground {
             }
         case "render":
             mod.runUserTask(new RenderTest());
+            break;
 
             default:
                 mod.logWarning("Test not found: \"" + arg + "\".");
